@@ -8,8 +8,10 @@ public final class FallbackPolicy {
     public static boolean shouldFallback(ProviderLookupResult result) {
         return result instanceof ProviderLookupResult.Failure failure
                 && switch (failure.failure()) {
-                    case ProviderFailure.Unavailable ignored, ProviderFailure.Malformed ignored -> true;
-                    case ProviderFailure.ClientError ignored, ProviderFailure.Timeout ignored -> false;
+                    case ProviderFailure.Unavailable ignored -> true;
+                    case ProviderFailure.Malformed ignored -> true;
+                    case ProviderFailure.ClientError ignored -> false;
+                    case ProviderFailure.Timeout ignored -> false;
                 };
     }
 }

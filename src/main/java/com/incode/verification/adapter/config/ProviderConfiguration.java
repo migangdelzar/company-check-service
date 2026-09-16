@@ -10,11 +10,13 @@ import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import java.time.Duration;
 import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.core5.util.Timeout;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -28,7 +30,8 @@ public class ProviderConfiguration {
     @Bean @Primary ProviderLookupPort providerResolver(@Qualifier("freeProvider") ProviderLookupPort free, @Qualifier("premiumProvider") ProviderLookupPort premium) { return new ProviderResolver(free, premium); }
     private RestClient client(ProviderProperties.Endpoint e, Duration timeout) {
         var manager = PoolingHttpClientConnectionManagerBuilder.create().setMaxConnTotal(100).setMaxConnPerRoute(100).build();
-        RequestConfig rc = RequestConfig.custom().setConnectionRequestTimeout(timeout).setResponseTimeout(timeout).build();
+        Timeout requestTimeout = Timeout.ofMilliseconds(timeout.toMillis());
+        RequestConfig rc = RequestConfig.custom().setConnectionRequestTimeout(requestTimeout).setResponseTimeout(requestTimeout).build();
         CloseableHttpClient http = HttpClients.custom().setConnectionManager(manager).setDefaultRequestConfig(rc).build();
         return RestClient.builder().baseUrl(e.baseUrl()).requestFactory(new HttpComponentsClientHttpRequestFactory(http)).build();
     }

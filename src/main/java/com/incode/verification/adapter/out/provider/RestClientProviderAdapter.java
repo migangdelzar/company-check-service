@@ -19,7 +19,7 @@ public final class RestClientProviderAdapter implements ProviderLookupPort {
     @Override public ProviderLookupResult lookup(NormalizedQuery query, ExecutionContext context) {
         try {
             JsonNode body = client.get().uri(endpoint.path(), query.value()).header("X-Api-Key", endpoint.apiKey())
-                    .retrieve().onStatus(HttpStatusCode::is4xxClientError, (r, x) -> { throw new ProviderException(new ProviderFailure.ClientError(r.getStatusCode().value())); })
+                    .retrieve().onStatus(HttpStatusCode::is4xxClientError, (request, response) -> { throw new ProviderException(new ProviderFailure.ClientError(response.getStatusCode().value())); })
                     .body(JsonNode.class);
             var companies = ProviderResponseMapper.companies(body);
             return companies.isEmpty() ? new ProviderLookupResult.Failure(new ProviderFailure.Malformed()) : new ProviderLookupResult.Success(companies, type);

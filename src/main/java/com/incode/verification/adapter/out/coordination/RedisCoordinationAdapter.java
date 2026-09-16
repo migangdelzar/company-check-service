@@ -44,9 +44,9 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
                 if (cached(key).isPresent()) return new RedisLease(leaseKey, token, false, false);
                 Thread.sleep(properties.waiterPoll().toMillis());
             }
-            Boolean takeover = redis.execute(new DefaultRedisScript<>(TAKEOVER, String.class), java.util.List.of(leaseKey), token,
+            String takeover = redis.execute(new DefaultRedisScript<>(TAKEOVER, String.class), java.util.List.of(leaseKey), token,
                     String.valueOf(properties.leaseTtl().toMillis()));
-            return new RedisLease(leaseKey, token, Boolean.TRUE.equals(takeover), false);
+            return new RedisLease(leaseKey, token, "OK".equals(takeover), false);
         } catch (Exception ignored) { return new RedisLease(leaseKey, token, true, true); }
     }
     private long ttlMillis() { return properties.ttl().toMillis() + ThreadLocalRandom.current().nextLong(properties.jitter().toMillis() + 1); }
