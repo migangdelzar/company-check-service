@@ -31,6 +31,7 @@ dependencies {
   implementation(libs.micrometer.registry.prometheus)
   implementation(libs.spring.boot.starter.validation)
   implementation(libs.httpclient5)
+  implementation(libs.uuid.creator)
   implementation(libs.resilience4j.spring.boot4)
   implementation(libs.caffeine)
   implementation(libs.jackson.databind)

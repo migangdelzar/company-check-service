@@ -78,4 +78,12 @@ class VerificationTest {
     assertEquals(7, id.version());
     assertEquals(2, id.variant());
   }
+
+  @Test
+  void createsMonotonicallyOrderedUuidV7Values() {
+    var first = com.incode.verification.domain.valueobject.UuidV7.generate();
+    var second = com.incode.verification.domain.valueobject.UuidV7.generate();
+
+    assertTrue(first.compareTo(second) < 0);
+  }
 }
