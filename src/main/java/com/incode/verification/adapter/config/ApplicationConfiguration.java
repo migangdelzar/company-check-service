@@ -6,7 +6,6 @@ import com.incode.verification.application.port.in.GetVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
-import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.service.VerificationApplicationService;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -31,32 +30,14 @@ public class ApplicationConfiguration {
   }
 
   @Bean
-  VerificationLifecycle verificationLifecycle(VerificationRepository repository) {
-    return new VerificationLifecycle() {
-      @Override
-      public void start(com.incode.verification.domain.aggregate.Verification verification) {
-        repository.insertInProgress(verification);
-      }
-
-      @Override
-      public void transition(
-          com.incode.verification.domain.aggregate.Verification verification,
-          java.util.function.Consumer<VerificationRepository> write) {
-        write.accept(repository);
-      }
-    };
-  }
-
-  @Bean
   VerificationApplicationService verificationApplicationService(
       VerificationRepository repository,
-      VerificationLifecycle lifecycle,
       CoordinationPort coordination,
       @Qualifier("freeProvider") ProviderLookupPort free,
       @Qualifier("premiumProvider") ProviderLookupPort premium,
       Clock clock) {
     return new VerificationApplicationService(
-        repository, lifecycle, coordination, free, premium, clock, Duration.ofMinutes(10));
+        repository, coordination, free, premium, clock, Duration.ofMinutes(10));
   }
 
   @Bean

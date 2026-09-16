@@ -1,21 +1,29 @@
 package com.incode.verification.adapter.config;
 
 import com.incode.verification.application.port.out.VerificationView;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 @ConfigurationProperties("verification.coordination")
+@Validated
 public record CoordinationProperties(
-    int l1MaximumSize,
-    Duration ttl,
+    @Min(1) int l1MaximumSize,
+    @NotNull Duration ttl,
     Duration matchTtl,
     Duration noMatchTtl,
-    Duration jitter,
-    Duration leaseTtl,
-    Duration waiterPoll,
-    int waiterAttempts,
+    @NotNull Duration jitter,
+    @NotNull Duration leaseTtl,
+    @NotNull Duration waiterPoll,
+    @Min(0) int waiterAttempts,
     String keyPrefix) {
   public CoordinationProperties {
+    ttl = ttl == null ? Duration.ofMinutes(10) : ttl;
+    jitter = jitter == null ? Duration.ZERO : jitter;
+    leaseTtl = leaseTtl == null ? Duration.ofSeconds(20) : leaseTtl;
+    waiterPoll = waiterPoll == null ? Duration.ofMillis(50) : waiterPoll;
     if (l1MaximumSize < 1
         || ttl.isNegative()
         || (matchTtl != null && matchTtl.isNegative())

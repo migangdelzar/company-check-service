@@ -2,19 +2,24 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.testing.Test
 import java.time.Duration
 
-// Gradle core plugins.
+// ---------------------------------------------------------------------------
+// Plugin declarations: Gradle core plugins first, external aliases second.
+// External plugin versions live only in gradle/libs.versions.toml.
+// ---------------------------------------------------------------------------
 plugins {
   java
   checkstyle
   jacoco
-  // External plugins are managed centrally in gradle/libs.versions.toml.
+  id("java-test-fixtures")
+  id("jvm-test-suite")
   alias(libs.plugins.spring.boot)
   alias(libs.plugins.spotless)
   alias(libs.plugins.error.prone)
-  id("java-test-fixtures")
-  id("jvm-test-suite")
 }
 
+// ---------------------------------------------------------------------------
+// Platform and dependency model
+// ---------------------------------------------------------------------------
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 
 dependencies {
@@ -46,8 +51,11 @@ val openApiContracts =
     include("**/*.yaml", "**/*.yml", "**/*.json")
   }
 val jacocoArtifactDirectory = layout.buildDirectory.dir("reports/jacoco")
-val performanceArtifactDirectory = layout.buildDirectory.dir("reports/performance")
 dependencyLocking { lockAllConfigurations() }
+
+// ---------------------------------------------------------------------------
+// Code quality and test defaults
+// ---------------------------------------------------------------------------
 jacoco {
   reportsDirectory.set(jacocoArtifactDirectory)
 }
@@ -122,14 +130,9 @@ testing.suites.withType<JvmTestSuite>().configureEach {
   }
 }
 
-val performanceTest =
-  tasks.register("performanceTest") {
-    group = "verification"
-    description = "Runs the performance baseline through the external mise/Locust harness."
-    outputs.cacheIf { false }
-    outputs.dir(performanceArtifactDirectory)
-  }
-
+// ---------------------------------------------------------------------------
+// Contract validation
+// ---------------------------------------------------------------------------
 val openApiReportDirectory = layout.buildDirectory.dir("reports/openapi")
 val openApiValidate =
   tasks.register<Exec>("openApiValidate") {
@@ -142,7 +145,7 @@ val openApiValidate =
   }
 
 // ---------------------------------------------------------------------------
-// Paketo image properties are validated once, at the Gradle boundary.
+// Paketo image build and publication
 // ---------------------------------------------------------------------------
 
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
@@ -259,6 +262,9 @@ tasks.register("image") {
   description = "Builds the JVM or native image with Paketo via Spring Boot."
   dependsOn("bootBuildImage")
   inputs.property("imageVariant", validatedVariant)
+  inputs.property("imageName", configuredImageName)
+  inputs.property("publishImage", publishImage)
+  inputs.property("imagePlatform", configuredImagePlatform)
   inputs.property("nativeOptimization", nativeOptimization)
   inputs.property("imageArchitecture", imageArchitecture)
   inputs.property("paketoBuilderImage", paketoBuilderImage)
@@ -276,6 +282,9 @@ fun requireDigestImage(
   }
   return image
 }
+// ---------------------------------------------------------------------------
+// Test suites
+// ---------------------------------------------------------------------------
 testing {
   suites {
     listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
@@ -313,6 +322,7 @@ tasks.register("qualityGate") {
     "spotlessCheck",
     "checkstyleMain",
     "checkstyleTest",
+    "check",
     "test",
     "jacocoTestReport",
     "jacocoTestCoverageVerification",
@@ -321,12 +331,12 @@ tasks.register("qualityGate") {
 }
 
 // ---------------------------------------------------------------------------
-// Final gates and image smoke checks are Gradle tasks, not shell declarations.
+// Verification gates and image smoke checks
 // ---------------------------------------------------------------------------
 tasks.register("verifyFinalGates") {
   group = "verification"
   description = "Runs all service-owned final gates."
-  dependsOn("qualityGate", openApiValidate, "performanceTest")
+  dependsOn("qualityGate", openApiValidate)
 }
 
 val imageSmokeTimeoutSeconds =

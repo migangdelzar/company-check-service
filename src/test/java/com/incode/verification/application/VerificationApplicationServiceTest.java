@@ -8,7 +8,6 @@ import com.incode.verification.application.context.ExecutionContext;
 import com.incode.verification.application.port.in.StartVerificationUseCase.StartVerificationCommand;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
-import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.application.service.CoordinationUnavailableException;
@@ -39,7 +38,6 @@ class VerificationApplicationServiceTest {
   @Test
   void persistsInProgressBeforeProviderAndExposesImmutableView() {
     var repository = new MemoryRepository();
-    var lifecycle = new RecordingLifecycle(repository);
     var provider =
         (ProviderLookupPort)
             (q, c) ->
@@ -50,7 +48,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            lifecycle,
             new NoopCoordination(),
             provider,
             provider,
@@ -62,13 +59,11 @@ class VerificationApplicationServiceTest {
     assertEquals(VerificationStatus.COMPLETED, view.status());
     assertThrows(
         UnsupportedOperationException.class, () -> view.otherResults().add(view.company()));
-    assertEquals(List.of("start", "transition"), lifecycle.calls);
   }
 
   @Test
   void fallsBackOnlyForDomainFallbackFailures() {
     var repository = new MemoryRepository();
-    var lifecycle = new RecordingLifecycle(repository);
     var calls = new ArrayList<String>();
     var primary =
         (ProviderLookupPort)
@@ -85,7 +80,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            lifecycle,
             new NoopCoordination(),
             primary,
             fallback,
@@ -164,7 +158,6 @@ class VerificationApplicationServiceTest {
   @Test
   void completesFromSharedCacheWithoutCallingProviders() {
     var repository = new MemoryRepository();
-    var lifecycle = new RecordingLifecycle(repository);
     var cached =
         new VerificationView(
             UUID.randomUUID(),
@@ -181,7 +174,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            lifecycle,
             new CachedCoordination(cached),
             (q, c) -> {
               throw new AssertionError("provider must not be called");
@@ -202,7 +194,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            new RecordingLifecycle(repository),
             new WaitingCoordination(),
             (q, c) -> {
               throw new AssertionError("provider must not be called");
@@ -223,7 +214,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            new RecordingLifecycle(repository),
             new UnavailableCoordination(),
             providerMustNotRun(),
             providerMustNotRun(),
@@ -265,7 +255,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            new RecordingLifecycle(repository),
             new CachedCoordination(cached),
             (q, c) -> new ProviderLookupResult.Success(List.of(), ProviderType.FREE),
             (q, c) -> new ProviderLookupResult.Success(List.of(), ProviderType.FREE),
@@ -297,7 +286,6 @@ class VerificationApplicationServiceTest {
     var service =
         new VerificationApplicationService(
             repository,
-            new RecordingLifecycle(repository),
             new CachedCoordination(cached),
             (q, c) -> {
               throw new AssertionError("provider must not be called");
@@ -410,7 +398,6 @@ class VerificationApplicationServiceTest {
       MemoryRepository repository, ProviderLookupPort primary, ProviderLookupPort fallback) {
     return new VerificationApplicationService(
         repository,
-        new RecordingLifecycle(repository),
         new NoopCoordination(),
         primary,
         fallback,
@@ -452,28 +439,6 @@ class VerificationApplicationServiceTest {
     public boolean updateTerminal(UUID id, UUID token, Verification v) {
       values.put(id, v);
       return true;
-    }
-  }
-
-  private static final class RecordingLifecycle implements VerificationLifecycle {
-    private final VerificationRepository repository;
-    private final List<String> calls = new ArrayList<>();
-
-    RecordingLifecycle(VerificationRepository repository) {
-      this.repository = repository;
-    }
-
-    @Override
-    public void start(Verification v) {
-      calls.add("start");
-      repository.insertInProgress(v);
-    }
-
-    @Override
-    public void transition(
-        Verification v, java.util.function.Consumer<VerificationRepository> write) {
-      calls.add("transition");
-      write.accept(repository);
     }
   }
 

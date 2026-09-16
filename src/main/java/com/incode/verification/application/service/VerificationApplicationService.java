@@ -6,7 +6,6 @@ import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationAlreadyExistsException;
-import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.domain.aggregate.Verification;
@@ -26,7 +25,6 @@ import java.util.UUID;
 public final class VerificationApplicationService
     implements StartVerificationUseCase, GetVerificationUseCase {
   private final VerificationRepository repository;
-  private final VerificationLifecycle lifecycle;
   private final CoordinationPort coordination;
   private final ProviderLookupPort primaryProvider;
   private final ProviderLookupPort fallbackProvider;
@@ -35,14 +33,12 @@ public final class VerificationApplicationService
 
   public VerificationApplicationService(
       VerificationRepository repository,
-      VerificationLifecycle lifecycle,
       CoordinationPort coordination,
       ProviderLookupPort primaryProvider,
       ProviderLookupPort fallbackProvider,
       Clock clock,
       Duration lifetime) {
     this.repository = repository;
-    this.lifecycle = lifecycle;
     this.coordination = coordination;
     this.primaryProvider = primaryProvider;
     this.fallbackProvider = fallbackProvider;
@@ -63,7 +59,7 @@ public final class VerificationApplicationService
     var verification =
         Verification.start(verificationId, command.query(), normalized, now, now.plus(lifetime));
     try {
-      lifecycle.start(verification);
+      repository.insertInProgress(verification);
     } catch (VerificationAlreadyExistsException race) {
       return repository
           .findById(verificationId)
@@ -241,10 +237,7 @@ public final class VerificationApplicationService
   private void persistTerminal(Verification verification) {
     var claimToken = repository.claim(verification.id());
     if (claimToken == null) throw new IllegalStateException("verification terminal claim lost");
-    var updated = new boolean[1];
-    lifecycle.transition(
-        verification,
-        r -> updated[0] = r.updateTerminal(verification.id(), claimToken, verification));
-    if (!updated[0]) throw new IllegalStateException("verification terminal update lost ownership");
+    if (!repository.updateTerminal(verification.id(), claimToken, verification))
+      throw new IllegalStateException("verification terminal update lost ownership");
   }
 }
