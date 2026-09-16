@@ -8,16 +8,23 @@ import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.service.VerificationApplicationService;
+import com.incode.verification.adapter.out.observability.MicrometerTelemetryAdapter;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import io.micrometer.core.instrument.MeterRegistry;
 
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling
 public class ApplicationConfiguration {
+  @Bean
+  MicrometerTelemetryAdapter micrometerTelemetryAdapter(MeterRegistry registry) {
+    return new MicrometerTelemetryAdapter(registry);
+  }
+
   @Bean
   Clock applicationClock() {
     return Clock.systemUTC();

@@ -83,7 +83,8 @@ public final class JdbcVerificationRepository implements VerificationRepository 
             "WITH candidates AS (SELECT id FROM verifications WHERE status='IN_PROGRESS' "
                 + "AND expires_at<=:now ORDER BY expires_at "
                 + "FOR UPDATE SKIP LOCKED LIMIT :limit) UPDATE verifications v SET status='FAILED',"
-                + "state=CAST(:state AS jsonb),claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP FROM candidates c "
+                + "state=CAST(:state AS jsonb),claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP "
+                + "FROM candidates c "
                 + "WHERE v.id=c.id")
         .param("now", now)
         .param("limit", limit)
