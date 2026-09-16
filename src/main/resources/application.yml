@@ -65,7 +65,9 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics,prometheus
+    access:
+      max-permitted: read-only
   endpoint:
     health:
       show-details: never
