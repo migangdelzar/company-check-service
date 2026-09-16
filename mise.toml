@@ -1,0 +1,13 @@
+[tools]
+java = "25.0.1"
+docker = "27.5.1"
+colima = "0.8.1"
+pack = "0.36.4"
+locust = "2.32.10"
+bun = "1.1.38"
+[tasks.build]
+run = "./gradlew build"
+[tasks.test]
+run = "./gradlew test"
+[tasks.image]
+run = "./gradlew image"
