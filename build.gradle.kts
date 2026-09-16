@@ -12,10 +12,12 @@ plugins {
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 
 dependencies {
+    implementation(platform(libs.spring.boot.bom))
     implementation(libs.spring.boot.starter.jdbc)
     implementation(libs.spring.boot.starter.data.redis)
     implementation(libs.spring.boot.starter.web)
-    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation(libs.spring.boot.starter.actuator)
+    implementation(libs.spring.boot.starter.validation)
     implementation(libs.httpclient5)
     implementation(libs.resilience4j.spring.boot3)
     implementation(libs.caffeine)
