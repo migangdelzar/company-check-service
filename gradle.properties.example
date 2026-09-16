@@ -1,0 +1,8 @@
+# Copy these required immutable references into gradle.properties or pass them
+# with -P. Floating tags and invented digests are intentionally unsupported.
+paketoBuilderImage=paketobuildpacks/builder-jammy-base@sha256:<64-hex-digest>
+paketoRunImage=paketobuildpacks/run-jammy-base@sha256:<64-hex-digest>
+
+# JVM is the default. Native is opt-in; the only accepted optimization is b.
+# imageVariant=native
+# nativeOptimization=b
