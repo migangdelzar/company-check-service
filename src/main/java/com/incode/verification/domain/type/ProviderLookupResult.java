@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Objects;
 
 public sealed interface ProviderLookupResult permits ProviderLookupResult.Success, ProviderLookupResult.Failure {
-    record Success(List<Company> companies) implements ProviderLookupResult {
+    record Success(List<Company> companies, ProviderType provider) implements ProviderLookupResult {
+        public Success(List<Company> companies) { this(companies, ProviderType.FREE); }
         public Success { companies = List.copyOf(Objects.requireNonNull(companies, "companies")); }
     }
 

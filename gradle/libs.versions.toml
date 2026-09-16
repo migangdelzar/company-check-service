@@ -10,6 +10,8 @@ archunit = "1.4.1"
 spring-modulith = "1.4.3"
 testcontainers = "1.21.3"
 caffeine = "3.2.1"
+resilience4j = "2.3.0"
+httpclient5 = "5.4.3"
 [libraries]
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
@@ -24,6 +26,9 @@ jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 flyway-core = { module = "org.flywaydb:flyway-core" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 postgresql = { module = "org.postgresql:postgresql" }
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }
+resilience4j-spring-boot3 = { module = "io.github.resilience4j:resilience4j-spring-boot3", version.ref = "resilience4j" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 error-prone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "error-prone-core" }

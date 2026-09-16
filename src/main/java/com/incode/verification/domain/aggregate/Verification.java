@@ -23,7 +23,7 @@ public record Verification(UUID id, String rawQuery, NormalizedQuery query, Inst
         List<Company> active = result.companies().stream().filter(Company::active).toList();
         if (active.isEmpty()) return fail(new ProviderFailure.Unavailable(), now);
         return new Verification(id, rawQuery, query, startedAt, expiresAt,
-                new VerificationState.Completed(active.getFirst(), active.subList(1, active.size()), ProviderType.FREE));
+                new VerificationState.Completed(active.getFirst(), active.subList(1, active.size()), result.provider()));
     }
 
     public Verification fail(ProviderFailure failure, Instant now) {

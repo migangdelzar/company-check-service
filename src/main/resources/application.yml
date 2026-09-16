@@ -1,4 +1,8 @@
 verification:
+  providers:
+    attempt-timeout: 500ms
+    free: { base-url: ${VERIFICATION_FREE_BASE_URL:http://localhost:8081}, path: ${VERIFICATION_FREE_PATH:/companies?query={query}}, api-key: ${VERIFICATION_FREE_API_KEY:} }
+    premium: { base-url: ${VERIFICATION_PREMIUM_BASE_URL:http://localhost:8082}, path: ${VERIFICATION_PREMIUM_PATH:/companies?query={query}}, api-key: ${VERIFICATION_PREMIUM_API_KEY:} }
   coordination:
     l1-maximum-size: 10000
     ttl: 10m
@@ -7,3 +11,8 @@ verification:
     waiter-poll: 50ms
     waiter-attempts: 20
     key-prefix: company-check:
+resilience4j:
+  retry: { instances: { provider: { max-attempts: 2, wait-duration: 25ms } } }
+  circuitbreaker: { instances: { provider: { sliding-window-size: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s } } }
+  ratelimiter: { instances: { provider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 } } }
+  bulkhead: { instances: { provider: { max-concurrent-calls: 50, max-wait-duration: 0 } } }
