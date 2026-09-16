@@ -178,7 +178,30 @@ fun requireDigestImage(propertyName: String, image: String): String {
     }
     return image
 }
-testing { suites { register<JvmTestSuite>("integrationTest") { useJUnitJupiter() }; register<JvmTestSuite>("contractTest") { useJUnitJupiter() }; register<JvmTestSuite>("e2eTest") { useJUnitJupiter() } } }
+testing {
+    suites {
+        listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
+            register<JvmTestSuite>(suiteName) {
+                useJUnitJupiter()
+                sources {
+                    java.setSrcDirs(listOf("src/$suiteName/java"))
+                }
+                dependencies {
+                    implementation(project())
+                }
+            }
+        }
+    }
+}
+
+listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
+    configurations.named("${suiteName}Implementation") {
+        extendsFrom(configurations.testImplementation.get())
+    }
+    configurations.named("${suiteName}RuntimeOnly") {
+        extendsFrom(configurations.testRuntimeOnly.get())
+    }
+}
 tasks.named("check") { dependsOn("integrationTest", "contractTest", "e2eTest") }
 
 tasks.register("qualityGate") {
