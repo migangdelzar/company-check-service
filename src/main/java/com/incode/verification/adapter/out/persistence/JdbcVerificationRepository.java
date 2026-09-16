@@ -97,7 +97,9 @@ public final class JdbcVerificationRepository implements VerificationRepository 
 
   @Override
   public Optional<Verification> findById(UUID id) {
-    return jdbc.sql("SELECT * FROM verifications WHERE id=:id")
+    return jdbc.sql(
+            "SELECT id,raw_query,normalized_query,started_at,expires_at,state "
+                + "FROM verifications WHERE id=:id")
         .param("id", id)
         .query(this::map)
         .optional();
