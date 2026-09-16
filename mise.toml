@@ -12,3 +12,11 @@ run = "./gradlew build"
 run = "./gradlew test"
 [tasks.image]
 run = "./gradlew image"
+[tasks.quality-gate]
+run = "./gradlew qualityGate"
+[tasks.openapi-validate]
+run = "./gradlew openApiValidate"
+[tasks.performance]
+run = "./gradlew performanceTest"
+[tasks.verify-final-gates]
+run = "./scripts/verify-final-gates.sh"

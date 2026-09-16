@@ -46,7 +46,6 @@ spotless { kotlinGradle { ktlint() } }
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
-    outputs.cacheIf { false }
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
 }
 
@@ -75,7 +74,7 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
 }
 
 listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
-    tasks.matching { it.name == suiteName }.configureEach {
+    tasks.withType<Test>().matching { it.name == suiteName }.configureEach {
         outputs.cacheIf { false }
         outputs.upToDateWhen { false }
     }
