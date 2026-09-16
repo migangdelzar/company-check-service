@@ -1,4 +1,11 @@
+spring:
+  threads:
+    virtual:
+      enabled: true
+
 verification:
+  expiration:
+    reaper-delay: 1000ms
   providers:
     attempt-timeout: 500ms
     free: { base-url: ${VERIFICATION_FREE_BASE_URL:http://localhost:8081}, path: ${VERIFICATION_FREE_PATH:/companies?query={query}}, api-key: ${VERIFICATION_FREE_API_KEY:} }

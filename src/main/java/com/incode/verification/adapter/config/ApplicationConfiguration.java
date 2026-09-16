@@ -7,8 +7,10 @@ import java.time.Clock;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.*;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
+@EnableScheduling
 public class ApplicationConfiguration {
     @Bean Clock applicationClock() { return Clock.systemUTC(); }
 
@@ -32,4 +34,7 @@ public class ApplicationConfiguration {
 
     @Bean StartVerificationUseCase startVerificationUseCase(VerificationApplicationService service) { return service; }
     @Bean GetVerificationUseCase getVerificationUseCase(VerificationApplicationService service) { return service; }
+    @Bean ExpireVerificationsUseCase expireVerificationsUseCase(VerificationRepository repository) {
+        return new com.incode.verification.application.service.ExpireVerificationsService(repository);
+    }
 }

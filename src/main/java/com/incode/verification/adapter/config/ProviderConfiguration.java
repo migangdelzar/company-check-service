@@ -18,7 +18,7 @@ import org.springframework.context.annotation.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(ProviderProperties.class)
 public class ProviderConfiguration {
     @Bean("freeProviderClient") RestClient freeProviderClient(ProviderProperties p) { return client(p.free(), p.attemptTimeout()); }

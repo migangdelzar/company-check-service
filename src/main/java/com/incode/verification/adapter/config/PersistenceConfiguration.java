@@ -5,7 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.simple.JdbcClient;
 
-@Configuration
+@Configuration(proxyBeanMethods = false)
 public class PersistenceConfiguration {
     @Bean JdbcClient jdbcClient(DataSource dataSource) { return JdbcClient.create(dataSource); }
 }

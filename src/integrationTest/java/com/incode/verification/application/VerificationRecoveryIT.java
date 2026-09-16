@@ -1,0 +1,21 @@
+package com.incode.verification.application;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import com.incode.verification.adapter.out.expiration.VerificationExpirationScheduler;
+import com.incode.verification.application.port.in.ExpireVerificationsUseCase;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import org.junit.jupiter.api.Test;
+
+class VerificationRecoveryIT {
+    @Test
+    void startupRecoveryDrainsFullBatches() {
+        var calls = new int[] {0};
+        var useCase = (ExpireVerificationsUseCase) (now, batch) -> ++calls[0] < 3 ? batch : 4;
+        new VerificationExpirationScheduler(useCase, Clock.fixed(Instant.EPOCH, ZoneOffset.UTC))
+                .recoverExpiredVerifications();
+        assertEquals(3, calls[0]);
+    }
+}
