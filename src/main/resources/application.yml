@@ -1,0 +1,9 @@
+verification:
+  coordination:
+    l1-maximum-size: 10000
+    ttl: 10m
+    jitter: 30s
+    lease-ttl: 20s
+    waiter-poll: 50ms
+    waiter-attempts: 20
+    key-prefix: company-check:

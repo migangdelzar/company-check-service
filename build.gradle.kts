@@ -13,6 +13,8 @@ java.toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 
 dependencies {
     implementation(libs.spring.boot.starter.jdbc)
+    implementation(libs.spring.boot.starter.data.redis)
+    implementation(libs.caffeine)
     implementation(libs.jackson.databind)
     implementation(libs.flyway.core)
     implementation(libs.flyway.database.postgresql)

@@ -10,6 +10,7 @@ public interface CoordinationPort {
 
     interface Lease extends AutoCloseable {
         boolean acquired();
+        default boolean failOpen() { return false; }
         @Override void close();
     }
 }
