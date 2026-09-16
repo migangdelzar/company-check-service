@@ -16,7 +16,8 @@ The default is the JVM image. Native is explicit with
 configuration.
 
 The image task emits OCI metadata labels and keeps Paketo's non-root runtime
-contract. `scripts/image-smoke.sh` is a bounded host-side smoke check: it uses
+contract. `imageSmoke` is a bounded Gradle-owned host-side smoke check: it uses
 the locally built image, runs the process as its declared non-root user, checks
 the container exits within the deadline, and never requires Docker inside the
-image.
+image. Configure the image with `-PimageName=...` and the deadline with
+`-PimageSmokeTimeoutSeconds=...`.

@@ -19,4 +19,4 @@ run = "./gradlew openApiValidate"
 [tasks.performance]
 run = "./gradlew performanceTest"
 [tasks.verify-final-gates]
-run = "./scripts/verify-final-gates.sh"
+run = "./gradlew verifyFinalGates"

@@ -1,9 +1,13 @@
+import java.time.Duration
 import org.gradle.api.tasks.Exec
+import org.gradle.api.tasks.testing.Test
 
+// Gradle core plugins.
 plugins {
   java
   checkstyle
   jacoco
+  // External plugins are managed centrally in gradle/libs.versions.toml.
   alias(libs.plugins.spring.boot)
   alias(libs.plugins.spotless)
   alias(libs.plugins.error.prone)
@@ -138,6 +142,10 @@ val openApiValidate =
     commandLine("npx", "--yes", "@redocly/cli@1.34.0", "lint")
     args(openApiContracts.files.map { it.path })
   }
+
+// ---------------------------------------------------------------------------
+// Paketo image properties are validated once, at the Gradle boundary.
+// ---------------------------------------------------------------------------
 
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
 val paketoBuilderImage =
@@ -274,4 +282,65 @@ tasks.register("qualityGate") {
     "jacocoTestCoverageVerification",
     openApiValidate,
   )
+}
+
+// ---------------------------------------------------------------------------
+// Final gates and image smoke checks are Gradle tasks, not shell declarations.
+// ---------------------------------------------------------------------------
+tasks.register("verifyFinalGates") {
+  group = "verification"
+  description = "Runs all service-owned final gates."
+  dependsOn("qualityGate", openApiValidate, "performanceTest")
+  doLast {
+    check(openApiContracts.files.isNotEmpty()) { "No OpenAPI contract is configured" }
+    check(tasks.names.containsAll(listOf("performanceTest", "qualityGate", "imageSmoke"))) {
+      "Expected Gradle-owned final gate tasks are missing"
+    }
+  }
+}
+
+val imageName = providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
+val imageSmokeTimeoutSeconds = providers.gradleProperty("imageSmokeTimeoutSeconds").map { value ->
+  value.toLongOrNull()?.also { timeout ->
+    require(timeout in 1..120) { "imageSmokeTimeoutSeconds must be between 1 and 120" }
+  } ?: error("imageSmokeTimeoutSeconds must be an integer")
+}.orElse(15)
+
+fun docker(arguments: List<String>): String {
+  val process = ProcessBuilder(listOf("docker") + arguments)
+    .redirectErrorStream(true)
+    .start()
+  val output = process.inputStream.readBytes().toString(Charsets.UTF_8).trim()
+  check(process.waitFor() == 0) { "docker ${arguments.joinToString(" ")} failed: $output" }
+  return output
+}
+
+tasks.register("imageSmoke") {
+  group = "verification"
+  description = "Runs a bounded Docker smoke check against the locally built image."
+  dependsOn("image")
+  outputs.cacheIf { false }
+  inputs.property("imageName", imageName)
+  inputs.property("timeoutSeconds", imageSmokeTimeoutSeconds)
+  doLast {
+    val image = imageName.get()
+    val timeout = imageSmokeTimeoutSeconds.get()
+    docker(listOf("image", "inspect", image))
+    val containerId = docker(listOf(
+      "create", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges:true", image,
+    ))
+    try {
+      docker(listOf("start", containerId))
+      val deadline = System.nanoTime() + Duration.ofSeconds(timeout).toNanos()
+      var running = true
+      while (running && System.nanoTime() < deadline) {
+        running = docker(listOf("inspect", "--format", "{{.State.Running}}", containerId)) == "true"
+        if (running) Thread.sleep(100)
+      }
+      check(!running) { "Image did not reach a terminal state within ${timeout}s" }
+      logger.lifecycle(docker(listOf("inspect", "--format", "exit={{.State.ExitCode}} user={{.Config.User}}", containerId)))
+    } finally {
+      runCatching { docker(listOf("rm", "-f", containerId)) }
+    }
+  }
 }
