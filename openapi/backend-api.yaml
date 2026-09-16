@@ -1,0 +1,167 @@
+openapi: 3.0.3
+info:
+  title: Company Check Backend API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /backend-service:
+    get:
+      summary: Start or retrieve a verification
+      description: >
+        Starts a verification for a new verificationId. Repeating the same
+        verificationId and normalized query retrieves the existing result
+        without starting another provider lookup. Reusing an id with a
+        different normalized query is rejected.
+      parameters:
+        - $ref: '#/components/parameters/VerificationId'
+        - $ref: '#/components/parameters/Query'
+      responses:
+        '200':
+          description: Verification state or result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '502':
+          $ref: '#/components/responses/ProviderClientError'
+        '503':
+          $ref: '#/components/responses/ProvidersUnavailable'
+  /backend-service/{verificationId}:
+    get:
+      summary: Retrieve a stored verification
+      description: Returns the current stored state without invoking a provider.
+      parameters:
+        - $ref: '#/components/parameters/VerificationIdPath'
+      responses:
+        '200':
+          description: Stored verification state or result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerificationResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+components:
+  parameters:
+    VerificationId:
+      name: verificationId
+      in: query
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VerificationIdPath:
+      name: verificationId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Query:
+      name: query
+      in: query
+      required: true
+      schema:
+        type: string
+        minLength: 1
+        maxLength: 255
+  schemas:
+    VerificationResponse:
+      type: object
+      required:
+        - verificationId
+        - query
+        - normalizedQuery
+        - startedAt
+        - expiresAt
+        - status
+        - otherResults
+      properties:
+        verificationId:
+          type: string
+          format: uuid
+        query:
+          type: string
+        normalizedQuery:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [IN_PROGRESS, COMPLETED, FAILED]
+        company:
+          $ref: '#/components/schemas/Company'
+        otherResults:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
+        provider:
+          type: string
+          enum: [FREE, PREMIUM]
+        failure:
+          type: string
+    Company:
+      type: object
+      required: [name, address, active]
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        active:
+          type: boolean
+    ProblemDetail:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          format: uri
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+  responses:
+    BadRequest:
+      description: Invalid request parameters
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    NotFound:
+      description: Verification not found
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    Conflict:
+      description: VerificationId is already associated with another query
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ProviderClientError:
+      description: Provider returned a client error
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
+    ProvidersUnavailable:
+      description: Providers are unavailable
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/ProblemDetail'
