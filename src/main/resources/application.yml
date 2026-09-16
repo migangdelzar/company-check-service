@@ -16,3 +16,11 @@ resilience4j:
   circuitbreaker: { instances: { provider: { sliding-window-size: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s } } }
   ratelimiter: { instances: { provider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 } } }
   bulkhead: { instances: { provider: { max-concurrent-calls: 50, max-wait-duration: 0 } } }
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
