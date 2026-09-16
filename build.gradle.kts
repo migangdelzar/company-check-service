@@ -25,7 +25,14 @@ checkstyle { toolVersion = libs.versions.checkstyle.get() }
 spotless { kotlinGradle { ktlint() } }
 
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
-val nativeOptimization = providers.gradleProperty("nativeOptimization").orElse("b")
+val nativeOptimization = providers.gradleProperty("nativeOptimization")
+    .orElse("b")
+    .map { optimization ->
+        require(optimization == "b") {
+            "nativeOptimization must be: b"
+        }
+        optimization
+    }
 val validatedVariant = imageVariant.map { variant ->
     require(variant == "jvm" || variant == "native") {
         "imageVariant must be one of: jvm, native"
@@ -42,7 +49,15 @@ tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("boot
     inputs.file(layout.projectDirectory.file("gradle.lockfile"))
     inputs.file(layout.projectDirectory.file("settings-gradle.lockfile"))
     environment.put("BP_NATIVE_IMAGE", validatedVariant.map { (it == "native").toString() })
-    environment.put("BP_NATIVE_IMAGE_BUILD_ARGUMENTS", nativeOptimization.map { "-O$it" })
+    environment.putAll(validatedVariant.flatMap { variant ->
+        if (variant == "native") {
+            nativeOptimization.map { optimization ->
+                mapOf("BP_NATIVE_IMAGE_BUILD_ARGUMENTS" to "-O$optimization")
+            }
+        } else {
+            providers.provider { emptyMap() }
+        }
+    })
 }
 
 tasks.register("image") {
