@@ -2,6 +2,7 @@ package com.incode.verification.adapter.in.web;
 
 import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.VerificationConflictException;
+import com.incode.verification.application.service.VerificationNotFoundException;
 import com.incode.verification.domain.valueobject.InvalidQueryException;
 import java.net.URI;
 import java.util.stream.Collectors;
@@ -31,8 +32,8 @@ public class ApiExceptionHandler {
         .body(problem);
   }
 
-  @ExceptionHandler(IllegalArgumentException.class)
-  ResponseEntity<ProblemDetail> notFound(IllegalArgumentException exception) {
+  @ExceptionHandler(VerificationNotFoundException.class)
+  ResponseEntity<ProblemDetail> notFound(VerificationNotFoundException exception) {
     var problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
     problem.setType(URI.create("https://example.com/problems/verification-not-found"));
     problem.setTitle("Verification not found");

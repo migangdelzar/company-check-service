@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.VerificationConflictException;
+import com.incode.verification.application.service.VerificationNotFoundException;
 import com.incode.verification.domain.type.ProviderFailure;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +38,7 @@ class ApiExceptionHandlerTest {
 
   @Test
   void mapsMissingVerificationToNotFound() {
-    var response = handler.notFound(new IllegalArgumentException("missing"));
+    var response = handler.notFound(new VerificationNotFoundException("missing"));
     assertEquals(404, response.getStatusCode().value());
   }
 }

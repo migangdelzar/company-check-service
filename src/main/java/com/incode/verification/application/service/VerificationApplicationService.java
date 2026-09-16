@@ -108,14 +108,15 @@ public final class VerificationApplicationService
         .findById(verificationId)
         .map(this::pollSharedTerminal)
         .orElseThrow(
-            () -> new IllegalArgumentException("verification not found: " + verificationId));
+            () -> new VerificationNotFoundException("verification not found: " + verificationId));
   }
 
   private VerificationView pollSharedTerminal(Verification verification) {
     if (!(verification.state() instanceof VerificationState.InProgress)) return view(verification);
     var key = new LookupKey(verification.query());
     var cached = coordination.cached(key);
-    if (cached.isPresent()) return completeFromCached(verification, cached.orElseThrow(), key, false);
+    if (cached.isPresent())
+      return completeFromCached(verification, cached.orElseThrow(), key, false);
     var shared = repository.findTerminalByQuery(verification.query());
     return shared
         .map(value -> completeFromShared(verification, value, key))

@@ -26,8 +26,11 @@ final class VerificationStateCodec {
         root.set("otherResults", mapper.valueToTree(s.otherResults()));
         root.put("provider", s.provider().name());
       }
-      if (state instanceof VerificationState.Failed s)
+      if (state instanceof VerificationState.Failed s) {
         root.put("type", "FAILED").put("failure", failureName(s.failure()));
+        if (s.failure() instanceof ProviderFailure.ClientError clientError)
+          root.put("statusCode", clientError.statusCode());
+      }
       return mapper.writeValueAsString(root);
     } catch (Exception e) {
       throw new IllegalStateException("cannot encode verification state", e);
@@ -46,7 +49,9 @@ final class VerificationStateCodec {
                 mapper.treeToValue(root.get("company"), Company.class),
                 mapper.readerForListOf(Company.class).readValue(root.get("otherResults")),
                 ProviderType.valueOf(root.path("provider").asText()));
-        case "FAILED" -> new VerificationState.Failed(failure(root.path("failure").asText()));
+        case "FAILED" ->
+            new VerificationState.Failed(
+                failure(root.path("failure").asText(), root.path("statusCode").asInt(500)));
         default -> throw new IllegalArgumentException("unknown verification state");
       };
     } catch (Exception e) {
@@ -63,9 +68,9 @@ final class VerificationStateCodec {
     };
   }
 
-  private ProviderFailure failure(String name) {
+  private ProviderFailure failure(String name, int statusCode) {
     return switch (name) {
-      case "CLIENT_ERROR" -> new ProviderFailure.ClientError(500);
+      case "CLIENT_ERROR" -> new ProviderFailure.ClientError(statusCode);
       case "MALFORMED" -> new ProviderFailure.Malformed();
       case "TIMEOUT" -> new ProviderFailure.Timeout();
       default -> new ProviderFailure.Unavailable();

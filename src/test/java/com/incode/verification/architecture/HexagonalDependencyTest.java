@@ -33,8 +33,10 @@ class HexagonalDependencyTest {
 
   @Test
   void expirationReclaimsExpiredRowsEvenWhenAStaleClaimRemains() throws Exception {
-    String repository = Files.readString(Path.of(
-        "src/main/java/com/incode/verification/adapter/out/persistence/JdbcVerificationRepository.java"));
+    String repository =
+        Files.readString(
+            Path.of(
+                "src/main/java/com/incode/verification/adapter/out/persistence/JdbcVerificationRepository.java"));
 
     assertTrue(repository.contains("AND expires_at<=:now ORDER BY expires_at"));
     assertFalse(repository.contains("AND expires_at<=:now AND claim_token IS NULL"));
