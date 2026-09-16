@@ -7,8 +7,10 @@ import com.incode.verification.domain.type.ProviderFailure;
 import com.incode.verification.domain.type.ProviderLookupResult;
 import com.incode.verification.domain.type.ProviderType;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
@@ -16,7 +18,6 @@ public final class RestClientProviderAdapter implements ProviderLookupPort {
   private final RestClient client;
   private final ProviderType type;
   private final ProviderProperties.Endpoint endpoint;
-  private final Duration timeout;
 
   public RestClientProviderAdapter(
       RestClient client,
@@ -26,7 +27,6 @@ public final class RestClientProviderAdapter implements ProviderLookupPort {
     this.client = client;
     this.type = type;
     this.endpoint = endpoint;
-    this.timeout = timeout;
   }
 
   @Override
@@ -45,18 +45,30 @@ public final class RestClientProviderAdapter implements ProviderLookupPort {
                         new ProviderFailure.ClientError(response.getStatusCode().value()));
                   })
               .body(JsonNode.class);
-      var companies = ProviderResponseMapper.companies(body);
-      return companies.isEmpty()
-          ? new ProviderLookupResult.Failure(new ProviderFailure.Malformed())
-          : new ProviderLookupResult.Success(companies, type);
+      var companies = ProviderResponseMapper.companies(body, type);
+      return new ProviderLookupResult.Success(companies, type);
     } catch (ProviderException e) {
       return new ProviderLookupResult.Failure(e.failure);
     } catch (RestClientResponseException e) {
-      return new ProviderLookupResult.Failure(
-          new ProviderFailure.ClientError(e.getStatusCode().value()));
+      if (e.getStatusCode().is4xxClientError())
+        return new ProviderLookupResult.Failure(
+            new ProviderFailure.ClientError(e.getStatusCode().value()));
+      throw new ProviderTransientException(new ProviderFailure.Unavailable(), e);
+    } catch (IllegalArgumentException e) {
+      throw new ProviderContractException(e);
+    } catch (ResourceAccessException e) {
+      if (hasCause(e, SocketTimeoutException.class))
+        throw new ProviderTransientException(new ProviderFailure.Timeout(), e);
+      throw new ProviderTransientException(new ProviderFailure.Unavailable(), e);
     } catch (Exception e) {
-      return new ProviderLookupResult.Failure(new ProviderFailure.Unavailable());
+      throw new ProviderTransientException(new ProviderFailure.Unavailable(), e);
     }
+  }
+
+  private static boolean hasCause(Throwable error, Class<? extends Throwable> type) {
+    for (Throwable current = error; current != null; current = current.getCause())
+      if (type.isInstance(current)) return true;
+    return false;
   }
 
   private static final class ProviderException extends RuntimeException {
