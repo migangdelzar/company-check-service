@@ -1,6 +1,6 @@
-import java.time.Duration
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.testing.Test
+import java.time.Duration
 
 // Gradle core plugins.
 plugins {
@@ -301,17 +301,25 @@ tasks.register("verifyFinalGates") {
 }
 
 val imageName = providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
-val imageSmokeTimeoutSeconds = providers.gradleProperty("imageSmokeTimeoutSeconds").map { value ->
-  value.toLongOrNull()?.also { timeout ->
-    require(timeout in 1..120) { "imageSmokeTimeoutSeconds must be between 1 and 120" }
-  } ?: error("imageSmokeTimeoutSeconds must be an integer")
-}.orElse(15)
+val imageSmokeTimeoutSeconds =
+  providers
+    .gradleProperty("imageSmokeTimeoutSeconds")
+    .map { value ->
+      value.toLongOrNull()?.also { timeout ->
+        require(timeout in 1..120) { "imageSmokeTimeoutSeconds must be between 1 and 120" }
+      } ?: error("imageSmokeTimeoutSeconds must be an integer")
+    }.orElse(15)
 
 fun docker(arguments: List<String>): String {
-  val process = ProcessBuilder(listOf("docker") + arguments)
-    .redirectErrorStream(true)
-    .start()
-  val output = process.inputStream.readBytes().toString(Charsets.UTF_8).trim()
+  val process =
+    ProcessBuilder(listOf("docker") + arguments)
+      .redirectErrorStream(true)
+      .start()
+  val output =
+    process.inputStream
+      .readBytes()
+      .toString(Charsets.UTF_8)
+      .trim()
   check(process.waitFor() == 0) { "docker ${arguments.joinToString(" ")} failed: $output" }
   return output
 }
@@ -327,9 +335,16 @@ tasks.register("imageSmoke") {
     val image = imageName.get()
     val timeout = imageSmokeTimeoutSeconds.get()
     docker(listOf("image", "inspect", image))
-    val containerId = docker(listOf(
-      "create", "--read-only", "--cap-drop=ALL", "--security-opt=no-new-privileges:true", image,
-    ))
+    val containerId =
+      docker(
+        listOf(
+          "create",
+          "--read-only",
+          "--cap-drop=ALL",
+          "--security-opt=no-new-privileges:true",
+          image,
+        ),
+      )
     try {
       docker(listOf("start", containerId))
       val deadline = System.nanoTime() + Duration.ofSeconds(timeout).toNanos()

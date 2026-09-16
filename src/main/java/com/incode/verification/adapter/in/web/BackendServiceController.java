@@ -1,12 +1,12 @@
 package com.incode.verification.adapter.in.web;
 
+import com.incode.verification.adapter.out.observability.MicrometerTelemetryAdapter;
 import com.incode.verification.application.port.in.GetVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationUseCase;
 import jakarta.validation.Valid;
-import java.util.UUID;
 import java.time.Duration;
 import java.time.Instant;
-import com.incode.verification.adapter.out.observability.MicrometerTelemetryAdapter;
+import java.util.UUID;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;

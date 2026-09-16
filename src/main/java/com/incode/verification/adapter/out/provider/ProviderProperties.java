@@ -1,11 +1,11 @@
 package com.incode.verification.adapter.out.provider;
 
-import java.time.Duration;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.AssertTrue;
+import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
@@ -20,8 +20,7 @@ public record ProviderProperties(
   }
 
   public record Endpoint(
-      @NotBlank
-          @Pattern(regexp = "https?://[^\\s]+", message = "must be an HTTP(S) URL")
+      @NotBlank @Pattern(regexp = "https?://[^\\s]+", message = "must be an HTTP(S) URL")
           String baseUrl,
       @NotBlank String path,
       String apiKey) {}
