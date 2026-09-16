@@ -13,7 +13,8 @@ public interface CoordinationPort {
   interface Lease extends AutoCloseable {
     boolean acquired();
 
-    default boolean failOpen() {
+    /** Redis is unavailable; callers must not invoke an external provider. */
+    default boolean degraded() {
       return false;
     }
 

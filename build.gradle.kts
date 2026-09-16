@@ -128,9 +128,6 @@ val performanceTest =
     description = "Runs the performance baseline through the external mise/Locust harness."
     outputs.cacheIf { false }
     outputs.dir(performanceArtifactDirectory)
-    doLast {
-      performanceArtifactDirectory.get().asFile.mkdirs()
-    }
   }
 
 val openApiReportDirectory = layout.buildDirectory.dir("reports/openapi")
@@ -149,6 +146,22 @@ val openApiValidate =
 // ---------------------------------------------------------------------------
 
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
+val configuredImageName = providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
+val publishImage =
+  providers
+    .gradleProperty("publishImage")
+    .map { value ->
+      value.toBooleanStrictOrNull() ?: error("publishImage must be true or false")
+    }.orElse(false)
+val configuredImagePlatform =
+  providers
+    .gradleProperty("imagePlatform")
+    .map { platform ->
+      require(platform.matches(Regex("^linux/(amd64|arm64)$"))) {
+        "imagePlatform must be linux/amd64 or linux/arm64"
+      }
+      platform
+    }.orElse("linux/amd64")
 val paketoBuilderImage =
   providers
     .gradleProperty("paketoBuilderImage")
@@ -157,6 +170,23 @@ val paketoRunImage =
   providers
     .gradleProperty("paketoRunImage")
     .map { image -> requireDigestImage("paketoRunImage", image) }
+val imageTaskRequested =
+  gradle.startParameter.taskNames.any { task ->
+    task == "image" ||
+      task.endsWith(":image") ||
+      task == "imageSmoke" ||
+      task.endsWith(":imageSmoke") ||
+      task == "bootBuildImage" ||
+      task.endsWith(":bootBuildImage")
+  }
+if (imageTaskRequested) {
+  require(paketoBuilderImage.isPresent) {
+    "paketoBuilderImage is required and must be a digest-pinned image"
+  }
+  require(paketoRunImage.isPresent) {
+    "paketoRunImage is required and must be a digest-pinned image"
+  }
+}
 val nativeOptimization =
   providers
     .gradleProperty("nativeOptimization")
@@ -180,7 +210,12 @@ val imageArchitecture =
     .orElse(providers.systemProperty("os.arch").orElse("unknown"))
 
 tasks.named<org.springframework.boot.gradle.tasks.bundling.BootBuildImage>("bootBuildImage") {
+  imageName.set(configuredImageName)
+  publish.set(publishImage)
+  imagePlatform.set(configuredImagePlatform)
   inputs.property("imageVariant", validatedVariant)
+  inputs.property("publishImage", publishImage)
+  inputs.property("imagePlatform", configuredImagePlatform)
   inputs.property("nativeOptimization", nativeOptimization)
   inputs.property("imageArchitecture", imageArchitecture)
   inputs.property("paketoBuilderImage", paketoBuilderImage)
@@ -236,7 +271,7 @@ fun requireDigestImage(
   propertyName: String,
   image: String,
 ): String {
-  require(image.matches(Regex("^[^@/]+(?:/[^@]+)*/[^@]+@sha256:[0-9a-fA-F]{64}$"))) {
+  require(image.matches(Regex("^[^@\\s]+@sha256:[0-9a-fA-F]{64}$"))) {
     "$propertyName must be an immutable image reference ending in @sha256:<64 hex digits>"
   }
   return image
@@ -292,15 +327,8 @@ tasks.register("verifyFinalGates") {
   group = "verification"
   description = "Runs all service-owned final gates."
   dependsOn("qualityGate", openApiValidate, "performanceTest")
-  doLast {
-    check(openApiContracts.files.isNotEmpty()) { "No OpenAPI contract is configured" }
-    check(tasks.names.containsAll(listOf("performanceTest", "qualityGate", "imageSmoke"))) {
-      "Expected Gradle-owned final gate tasks are missing"
-    }
-  }
 }
 
-val imageName = providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
 val imageSmokeTimeoutSeconds =
   providers
     .gradleProperty("imageSmokeTimeoutSeconds")
@@ -329,10 +357,11 @@ tasks.register("imageSmoke") {
   description = "Runs a bounded Docker smoke check against the locally built image."
   dependsOn("image")
   outputs.cacheIf { false }
-  inputs.property("imageName", imageName)
+  inputs.property("imageName", configuredImageName)
+  inputs.property("imagePlatform", configuredImagePlatform)
   inputs.property("timeoutSeconds", imageSmokeTimeoutSeconds)
   doLast {
-    val image = imageName.get()
+    val image = configuredImageName.get()
     val timeout = imageSmokeTimeoutSeconds.get()
     docker(listOf("image", "inspect", image))
     val containerId =

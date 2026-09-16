@@ -10,6 +10,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 class BuildConfigurationTest {
+  private static final String DIGEST = "a".repeat(64);
+
   @Test
   void exposesRequiredBuildTasks() throws Exception {
     Result result = run("tasks", "--all");
@@ -23,9 +25,37 @@ class BuildConfigurationTest {
 
   @Test
   void rejectsUnknownImageVariant() throws Exception {
-    Result result = run("image", "-PimageVariant=invalid");
+    Result result = runWithProperties("-PimageVariant=invalid");
     assertEquals(1, result.exitCode());
     assertTrue(result.output().contains("imageVariant must be one of: jvm, native"));
+  }
+
+  @Test
+  void rejectsAnUnsupportedImagePlatform() throws Exception {
+    Result result = runWithProperties("-PimagePlatform=darwin/arm64");
+    assertEquals(1, result.exitCode());
+    assertTrue(
+        result.output().contains("imagePlatform must be linux/amd64 or linux/arm64"),
+        result.output());
+  }
+
+  @Test
+  void requiresDigestPinnedPaketoImages() throws Exception {
+    Result result = run("image");
+    assertEquals(1, result.exitCode());
+    assertTrue(result.output().contains("paketoBuilderImage is required"));
+  }
+
+  private String[] properties() {
+    return new String[] {
+      "-PpaketoBuilderImage=paketobuildpacks/builder@sha256:" + DIGEST,
+      "-PpaketoRunImage=paketobuildpacks/run@sha256:" + DIGEST
+    };
+  }
+
+  private Result runWithProperties(String property) throws Exception {
+    String[] imageProperties = properties();
+    return run("image", imageProperties[0], imageProperties[1], property);
   }
 
   private Result run(String... a) throws Exception {

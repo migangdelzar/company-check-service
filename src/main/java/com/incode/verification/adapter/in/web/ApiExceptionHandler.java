@@ -1,5 +1,6 @@
 package com.incode.verification.adapter.in.web;
 
+import com.incode.verification.application.service.CoordinationUnavailableException;
 import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.VerificationConflictException;
 import com.incode.verification.application.service.VerificationNotFoundException;
@@ -62,6 +63,18 @@ public class ApiExceptionHandler {
     problem.setTitle(exception.title());
     problem.setProperty("code", exception.code());
     return ResponseEntity.status(exception.httpStatus())
+        .contentType(MediaType.APPLICATION_PROBLEM_JSON)
+        .body(problem);
+  }
+
+  @ExceptionHandler(CoordinationUnavailableException.class)
+  ResponseEntity<ProblemDetail> coordination(CoordinationUnavailableException exception) {
+    var problem =
+        ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+    problem.setType(URI.create("https://www.incode.com/problems/coordination-unavailable"));
+    problem.setTitle("Verification coordination unavailable");
+    problem.setProperty("code", "COORDINATION_UNAVAILABLE");
+    return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
         .body(problem);
   }

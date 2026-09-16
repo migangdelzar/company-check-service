@@ -6,9 +6,9 @@ import com.incode.verification.adapter.config.CoordinationProperties;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.domain.valueobject.LookupKey;
+import com.incode.verification.domain.valueobject.UuidV7;
 import java.time.Duration;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
   @Override
   public Lease acquire(LookupKey key) {
     String leaseKey = properties.keyPrefix() + "lease:" + key.query().value();
-    String token = UUID.randomUUID().toString();
+    String token = UuidV7.generate().toString();
     try {
       Boolean acquired = redis.opsForValue().setIfAbsent(leaseKey, token, properties.leaseTtl());
       if (Boolean.TRUE.equals(acquired)) return new RedisLease(leaseKey, token, true, false);
@@ -84,8 +84,8 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
               String.valueOf(properties.leaseTtl().toMillis()));
       return new RedisLease(leaseKey, token, "OK".equals(takeover), false);
     } catch (Exception exception) {
-      log.debug("Redis coordination unavailable; using fail-open lookup ownership", exception);
-      return new RedisLease(leaseKey, token, true, true);
+      log.debug("Redis coordination unavailable; refusing external lookup ownership", exception);
+      return new RedisLease(leaseKey, token, false, true);
     }
   }
 
@@ -100,13 +100,13 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
 
   private final class RedisLease implements Lease {
     private final String key, token;
-    private final boolean acquired, failOpen;
+    private final boolean acquired, degraded;
 
-    RedisLease(String key, String token, boolean acquired, boolean failOpen) {
+    RedisLease(String key, String token, boolean acquired, boolean degraded) {
       this.key = key;
       this.token = token;
       this.acquired = acquired;
-      this.failOpen = failOpen;
+      this.degraded = degraded;
     }
 
     @Override
@@ -115,13 +115,13 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
     }
 
     @Override
-    public boolean failOpen() {
-      return failOpen;
+    public boolean degraded() {
+      return degraded;
     }
 
     @Override
     public void close() {
-      if (!failOpen)
+      if (!degraded)
         try {
           redis.execute(
               new DefaultRedisScript<>(RELEASE, Long.class), java.util.List.of(key), token);

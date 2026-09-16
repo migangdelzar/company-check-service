@@ -1,6 +1,7 @@
 package com.incode.verification.adapter.out.provider;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.domain.type.ProviderType;
@@ -9,13 +10,13 @@ import org.junit.jupiter.api.Test;
 
 class ProviderResponseMapperTest {
   @Test
-  void mapsPremiumCompanyFullAddress() throws Exception {
+  void mapsPremiumFullAddress() throws Exception {
     var json =
         new ObjectMapper()
             .readTree(
                 "{\"results\":[{\"companyIdentificationNumber\":\"123\","
                     + "\"companyName\":\"Acme\",\"registrationDate\":\"2020-01-01\","
-                    + "\"companyFullAddress\":\"1 Main St\",\"isActive\":true}]}");
+                    + "\"fullAddress\":\"1 Main St\",\"isActive\":true}]}");
     var result = ProviderResponseMapper.companies(json, ProviderType.PREMIUM);
     assertEquals("Acme", result.getFirst().name());
     assertEquals("1 Main St", result.getFirst().address());
@@ -53,5 +54,19 @@ class ProviderResponseMapperTest {
         0,
         ProviderResponseMapper.companies(new ObjectMapper().readTree("[]"), ProviderType.FREE)
             .size());
+  }
+
+  @Test
+  void rejectsTheStalePremiumAddressField() throws Exception {
+    var json =
+        new ObjectMapper()
+            .readTree(
+                "[{\"companyIdentificationNumber\":\"123\",\"companyName\":\"Acme\","
+                    + "\"registrationDate\":\"2020-01-01\","
+                    + "\"companyFullAddress\":\"1 Main St\",\"isActive\":true}]");
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> ProviderResponseMapper.companies(json, ProviderType.PREMIUM));
   }
 }

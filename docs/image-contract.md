@@ -15,6 +15,11 @@ The default is the JVM image. Native is explicit with
 `-Ob`. Other optimization values and unknown variants are rejected during task
 configuration.
 
+Publishing is also Gradle-owned. Set `-PpublishImage=true`, an explicit
+`-PimageName`, and `-PimagePlatform=linux/amd64` or `linux/arm64`. Release
+workflows provide the approved Paketo references through repository variables;
+they do not build through a separate Dockerfile path.
+
 The image task emits OCI metadata labels and keeps Paketo's non-root runtime
 contract. `imageSmoke` is a bounded Gradle-owned host-side smoke check: it uses
 the locally built image, runs the process as its declared non-root user, checks

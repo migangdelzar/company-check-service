@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
+import com.incode.verification.domain.valueobject.UuidV7;
 import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.Optional;
@@ -50,7 +51,7 @@ public final class JdbcVerificationRepository implements VerificationRepository 
 
   @Override
   public UUID claim(UUID id) {
-    UUID token = UUID.randomUUID();
+    UUID token = UuidV7.generate();
     int changed =
         jdbc.sql(
                 "UPDATE verifications SET claim_token=:token,claimed_at=CURRENT_TIMESTAMP,"

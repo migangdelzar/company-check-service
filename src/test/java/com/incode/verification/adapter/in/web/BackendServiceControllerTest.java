@@ -10,9 +10,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.incode.verification.adapter.out.observability.MicrometerTelemetryAdapter;
 import com.incode.verification.application.port.in.GetVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.VerificationView;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -23,7 +25,9 @@ class BackendServiceControllerTest {
   private final StartVerificationUseCase starter = mock(StartVerificationUseCase.class);
   private final GetVerificationUseCase retriever = mock(GetVerificationUseCase.class);
   private final MockMvc mvc =
-      MockMvcBuilders.standaloneSetup(new BackendServiceController(starter, retriever))
+      MockMvcBuilders.standaloneSetup(
+              new BackendServiceController(
+                  starter, retriever, new MicrometerTelemetryAdapter(new SimpleMeterRegistry())))
           .setControllerAdvice(new ApiExceptionHandler())
           .build();
 

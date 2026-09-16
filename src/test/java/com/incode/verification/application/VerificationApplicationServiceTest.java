@@ -11,6 +11,7 @@ import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
+import com.incode.verification.application.service.CoordinationUnavailableException;
 import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.VerificationApplicationService;
 import com.incode.verification.domain.aggregate.Verification;
@@ -214,6 +215,24 @@ class VerificationApplicationServiceTest {
     assertEquals(
         VerificationStatus.IN_PROGRESS,
         service.start(new StartVerificationCommand(UUID.randomUUID(), "ACME")).status());
+  }
+
+  @Test
+  void refusesProviderLookupWhenCoordinationIsUnavailable() {
+    var repository = new MemoryRepository();
+    var service =
+        new VerificationApplicationService(
+            repository,
+            new RecordingLifecycle(repository),
+            new UnavailableCoordination(),
+            providerMustNotRun(),
+            providerMustNotRun(),
+            Clock.fixed(now, ZoneOffset.UTC),
+            Duration.ofMinutes(1));
+
+    assertThrows(
+        CoordinationUnavailableException.class,
+        () -> service.start(new StartVerificationCommand(UUID.randomUUID(), "ACME")));
   }
 
   @Test
@@ -501,6 +520,26 @@ class VerificationApplicationServiceTest {
         @Override
         public boolean acquired() {
           return false;
+        }
+
+        @Override
+        public void close() {}
+      };
+    }
+  }
+
+  private static final class UnavailableCoordination extends NoopCoordination {
+    @Override
+    public Lease acquire(LookupKey key) {
+      return new Lease() {
+        @Override
+        public boolean acquired() {
+          return false;
+        }
+
+        @Override
+        public boolean degraded() {
+          return true;
         }
 
         @Override

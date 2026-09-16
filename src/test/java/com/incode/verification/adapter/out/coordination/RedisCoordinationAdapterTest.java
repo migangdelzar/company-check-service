@@ -34,4 +34,29 @@ class RedisCoordinationAdapterTest {
     assertTrue(adapter.cached(key).isPresent());
     assertEquals(view, adapter.cached(key).orElseThrow());
   }
+
+  @Test
+  void marksRedisFailureAsDegradedWithoutGrantingLookupOwnership() {
+    Cache<String, VerificationView> cache = Caffeine.newBuilder().maximumSize(1).build();
+    var properties =
+        new CoordinationProperties(
+            1,
+            Duration.ofMinutes(1),
+            Duration.ofMinutes(1),
+            Duration.ofMinutes(1),
+            Duration.ZERO,
+            Duration.ofSeconds(1),
+            Duration.ZERO,
+            0,
+            "test:");
+
+    var lease =
+        new RedisCoordinationAdapter(cache, null, properties)
+            .acquire(
+                new LookupKey(
+                    new com.incode.verification.domain.valueobject.NormalizedQuery("ACME")));
+
+    assertEquals(false, lease.acquired());
+    assertEquals(true, lease.degraded());
+  }
 }

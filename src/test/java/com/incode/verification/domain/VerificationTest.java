@@ -71,4 +71,11 @@ class VerificationTest {
         com.incode.verification.domain.policy.FallbackPolicy.shouldFallback(
             new ProviderLookupResult.Failure(new ProviderFailure.Timeout())));
   }
+
+  @Test
+  void createsUuidV7InternalIdentifiers() {
+    var id = com.incode.verification.domain.valueobject.UuidV7.generate();
+    assertEquals(7, id.version());
+    assertEquals(2, id.variant());
+  }
 }

@@ -41,14 +41,14 @@ public class ProviderConfiguration {
   ProviderLookupPort freeProvider(
       @Qualifier("freeProviderClient") RestClient c, ProviderProperties p) {
     return new FreeResilientProviderAdapter(
-        new RestClientProviderAdapter(c, ProviderType.FREE, p.free(), p.attemptTimeout()));
+        new RestClientProviderAdapter(c, ProviderType.FREE, p.free()));
   }
 
   @Bean
   ProviderLookupPort premiumProvider(
       @Qualifier("premiumProviderClient") RestClient c, ProviderProperties p) {
     return new PremiumResilientProviderAdapter(
-        new RestClientProviderAdapter(c, ProviderType.PREMIUM, p.premium(), p.attemptTimeout()));
+        new RestClientProviderAdapter(c, ProviderType.PREMIUM, p.premium()));
   }
 
   @Bean
@@ -85,8 +85,8 @@ public class ProviderConfiguration {
     @Override
     @Retry(name = "freeProvider", fallbackMethod = "fallback")
     @CircuitBreaker(name = "freeProvider", fallbackMethod = "fallback")
-    @RateLimiter(name = "freeProvider")
-    @Bulkhead(name = "freeProvider", type = Bulkhead.Type.SEMAPHORE)
+    @RateLimiter(name = "freeProvider", fallbackMethod = "fallback")
+    @Bulkhead(name = "freeProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
     public ProviderLookupResult lookup(
         com.incode.verification.domain.valueobject.NormalizedQuery q, ExecutionContext c) {
       return delegate.lookup(q, c);
@@ -110,8 +110,8 @@ public class ProviderConfiguration {
     @Override
     @Retry(name = "premiumProvider", fallbackMethod = "fallback")
     @CircuitBreaker(name = "premiumProvider", fallbackMethod = "fallback")
-    @RateLimiter(name = "premiumProvider")
-    @Bulkhead(name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE)
+    @RateLimiter(name = "premiumProvider", fallbackMethod = "fallback")
+    @Bulkhead(name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
     public ProviderLookupResult lookup(
         com.incode.verification.domain.valueobject.NormalizedQuery q, ExecutionContext c) {
       return delegate.lookup(q, c);

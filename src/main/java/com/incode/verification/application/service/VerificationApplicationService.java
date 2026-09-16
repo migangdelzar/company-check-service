@@ -17,6 +17,7 @@ import com.incode.verification.domain.type.VerificationState;
 import com.incode.verification.domain.type.VerificationStatus;
 import com.incode.verification.domain.valueobject.LookupKey;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
+import com.incode.verification.domain.valueobject.UuidV7;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -70,6 +71,8 @@ public final class VerificationApplicationService
           .orElseThrow(() -> race);
     }
     try (var lease = coordination.acquire(key)) {
+      if (lease.degraded())
+        throw new CoordinationUnavailableException("verification coordination is unavailable");
       if (!lease.acquired()) {
         var cached = coordination.cached(key);
         if (cached.isPresent())
@@ -83,7 +86,7 @@ public final class VerificationApplicationService
         return completeFromCached(verification, cached.orElseThrow(), key, true);
       var shared = repository.findTerminalByQuery(normalized);
       if (shared.isPresent()) return completeFromShared(verification, shared.orElseThrow(), key);
-      var context = new ExecutionContext(UUID.randomUUID());
+      var context = new ExecutionContext(UuidV7.generate());
       var result = lookup(primaryProvider, normalized, context);
       if (FallbackPolicy.shouldFallback(result))
         result = lookup(fallbackProvider, normalized, context);

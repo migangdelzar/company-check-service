@@ -26,11 +26,6 @@ public class BackendServiceController {
   private final MicrometerTelemetryAdapter telemetry;
 
   public BackendServiceController(
-      StartVerificationUseCase starter, GetVerificationUseCase retriever) {
-    this(starter, retriever, null);
-  }
-
-  public BackendServiceController(
       StartVerificationUseCase starter,
       GetVerificationUseCase retriever,
       MicrometerTelemetryAdapter telemetry) {
@@ -47,10 +42,8 @@ public class BackendServiceController {
         starter.start(
             new StartVerificationUseCase.StartVerificationCommand(
                 request.verificationId(), request.query()));
-    if (telemetry != null) {
-      telemetry.operation("start", result.status().name());
-      telemetry.latency("start", Duration.between(started, Instant.now()));
-    }
+    telemetry.operation("start", result.status().name());
+    telemetry.latency("start", Duration.between(started, Instant.now()));
     return response(result);
   }
 
@@ -58,10 +51,8 @@ public class BackendServiceController {
   public ResponseEntity<VerificationResponse> retrieve(@PathVariable UUID verificationId) {
     var started = Instant.now();
     var result = retriever.get(verificationId);
-    if (telemetry != null) {
-      telemetry.operation("get", result.status().name());
-      telemetry.latency("get", Duration.between(started, Instant.now()));
-    }
+    telemetry.operation("get", result.status().name());
+    telemetry.latency("get", Duration.between(started, Instant.now()));
     return response(result);
   }
 

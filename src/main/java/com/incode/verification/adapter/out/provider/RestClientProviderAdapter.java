@@ -8,7 +8,6 @@ import com.incode.verification.domain.type.ProviderLookupResult;
 import com.incode.verification.domain.type.ProviderType;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.net.SocketTimeoutException;
-import java.time.Duration;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
@@ -20,10 +19,7 @@ public final class RestClientProviderAdapter implements ProviderLookupPort {
   private final ProviderProperties.Endpoint endpoint;
 
   public RestClientProviderAdapter(
-      RestClient client,
-      ProviderType type,
-      ProviderProperties.Endpoint endpoint,
-      Duration timeout) {
+      RestClient client, ProviderType type, ProviderProperties.Endpoint endpoint) {
     this.client = client;
     this.type = type;
     this.endpoint = endpoint;

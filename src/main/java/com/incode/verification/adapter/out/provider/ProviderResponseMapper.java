@@ -24,9 +24,7 @@ final class ProviderResponseMapper {
               ? text(item, "registration_date")
               : text(item, "registrationDate");
       String address =
-          type == ProviderType.FREE
-              ? text(item, "address")
-              : text(item, "fullAddress", "companyFullAddress");
+          type == ProviderType.FREE ? text(item, "address") : text(item, "fullAddress");
       String activeField = type == ProviderType.FREE ? "is_active" : "isActive";
       if (cin == null
           || name == null
