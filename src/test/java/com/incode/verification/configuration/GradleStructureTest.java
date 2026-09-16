@@ -13,7 +13,7 @@ class GradleStructureTest {
   private static final Path BUILD_LOGIC_ROOT = SERVICE_ROOT.resolve("build-logic");
 
   @Test
-  void includesFocusedBuildLogicAndServiceConvention() throws IOException {
+  void includesFocusedBuildLogicAndDirectSpringBootPlugin() throws IOException {
     String settings = read(SERVICE_ROOT.resolve("settings.gradle.kts"));
     String rootBuild = read(SERVICE_ROOT.resolve("build.gradle.kts"));
 
@@ -24,10 +24,14 @@ class GradleStructureTest {
     assertTrue(
         Files.exists(
             BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.java-conventions.gradle.kts")));
-    assertTrue(
+    assertTrue(rootBuild.contains("alias(libs.plugins.spring.boot)"));
+    assertFalse(
         Files.exists(
             BUILD_LOGIC_ROOT.resolve(
                 "src/main/kotlin/com.incode.spring-boot-conventions.gradle.kts")));
+    assertFalse(
+        read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.service-conventions.gradle.kts"))
+            .contains("spring-boot-conventions"));
     assertTrue(
         Files.exists(
             BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.service-conventions.gradle.kts")));

@@ -1,8 +1,11 @@
-import org.gradle.api.tasks.testing.Test
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.plugins.jvm.JvmTestSuite
+import org.gradle.api.tasks.testing.Test
 
-plugins { id("jvm-test-suite") }
+plugins {
+  id("java-test-fixtures")
+  id("jvm-test-suite")
+}
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 

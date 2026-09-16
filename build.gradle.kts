@@ -1,7 +1,13 @@
-plugins { id("com.incode.service-conventions") }
+plugins {
+  alias(libs.plugins.spring.boot)
+  id("com.incode.service-conventions")
+}
 
 dependencies {
+  // Platform
   implementation(platform(libs.spring.boot.bom))
+
+  // Application runtime
   implementation(libs.spring.boot.starter.jdbc)
   implementation(libs.spring.boot.starter.data.redis)
   implementation(libs.spring.boot.starter.web)
@@ -15,9 +21,15 @@ dependencies {
   implementation(libs.jackson.databind)
   implementation(libs.flyway.core)
   implementation(libs.flyway.database.postgresql)
+
+  // Runtime infrastructure
   runtimeOnly(libs.postgresql)
+
+  // Build-time analysis
   checkstyle(libs.checkstyle)
   errorprone(libs.error.prone.core)
+
+  // Tests
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.archunit.junit5)
   testImplementation(libs.spring.modulith.core)

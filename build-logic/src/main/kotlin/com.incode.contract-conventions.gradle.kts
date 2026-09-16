@@ -1,5 +1,5 @@
-import org.gradle.api.tasks.Exec
 import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.Exec
 
 plugins { base }
 

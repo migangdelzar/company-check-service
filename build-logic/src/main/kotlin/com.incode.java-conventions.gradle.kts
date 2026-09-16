@@ -3,7 +3,6 @@ import org.gradle.api.artifacts.VersionCatalogsExtension
 plugins {
   java
   id("java-test-fixtures")
-  id("jvm-test-suite")
 }
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
