@@ -1,16 +1,31 @@
 package com.incode.verification.application;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.incode.verification.application.context.ExecutionContext;
 import com.incode.verification.application.port.in.StartVerificationUseCase.StartVerificationCommand;
-import com.incode.verification.application.port.out.*;
+import com.incode.verification.application.port.out.CoordinationPort;
+import com.incode.verification.application.port.out.ProviderLookupPort;
+import com.incode.verification.application.port.out.VerificationLifecycle;
+import com.incode.verification.application.port.out.VerificationRepository;
+import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.application.service.VerificationApplicationService;
 import com.incode.verification.domain.aggregate.Verification;
-import com.incode.verification.domain.type.*;
-import com.incode.verification.domain.valueobject.*;
-import java.time.*;
-import java.util.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.VerificationStatus;
+import com.incode.verification.domain.valueobject.LookupKey;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class VerificationApplicationServiceTest {

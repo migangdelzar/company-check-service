@@ -1,10 +1,14 @@
 package com.incode.verification.domain.aggregate;
 
 import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.VerificationState;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.time.Instant;
-import java.util.*;
+import java.util.List;
+import java.util.Objects;
+import java.util.UUID;
 
 public record Verification(
     UUID id,

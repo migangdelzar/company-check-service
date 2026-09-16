@@ -1,7 +1,9 @@
 package com.incode.verification.application.port.out;
 
 import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderType;
+import com.incode.verification.domain.type.VerificationStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;

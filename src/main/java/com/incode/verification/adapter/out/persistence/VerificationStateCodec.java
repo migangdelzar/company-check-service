@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderType;
+import com.incode.verification.domain.type.VerificationState;
 
 final class VerificationStateCodec {
   private static final int VERSION = 1;

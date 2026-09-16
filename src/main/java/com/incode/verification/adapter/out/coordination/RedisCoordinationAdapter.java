@@ -17,7 +17,8 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
   private static final String RELEASE =
       "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end";
   private static final String TAKEOVER =
-      "if redis.call('exists',KEYS[1])==0 then return redis.call('set',KEYS[1],ARGV[1],'NX','PX',ARGV[2]) else return nil end";
+      "if redis.call('exists',KEYS[1])==0 then return redis.call('set',KEYS[1],ARGV[1],'NX','PX',"
+          + "ARGV[2]) else return nil end";
   private final Cache<String, VerificationView> l1;
   private final StringRedisTemplate redis;
   private final CoordinationProperties properties;

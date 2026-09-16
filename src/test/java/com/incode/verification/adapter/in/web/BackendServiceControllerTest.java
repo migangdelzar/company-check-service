@@ -1,10 +1,17 @@
 package com.incode.verification.adapter.in.web;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.incode.verification.application.port.in.*;
+import com.incode.verification.application.port.in.GetVerificationUseCase;
+import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.VerificationView;
 import java.time.Instant;
 import java.util.UUID;

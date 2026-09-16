@@ -1,10 +1,12 @@
 package com.incode.verification.adapter.out.provider;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 import com.incode.verification.application.context.ExecutionContext;
 import com.incode.verification.application.port.out.ProviderLookupPort;
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.ProviderType;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;

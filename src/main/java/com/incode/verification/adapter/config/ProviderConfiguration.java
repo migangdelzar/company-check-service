@@ -1,9 +1,12 @@
 package com.incode.verification.adapter.config;
 
-import com.incode.verification.adapter.out.provider.*;
+import com.incode.verification.adapter.out.provider.ProviderProperties;
+import com.incode.verification.adapter.out.provider.ProviderResolver;
+import com.incode.verification.adapter.out.provider.RestClientProviderAdapter;
 import com.incode.verification.application.context.ExecutionContext;
 import com.incode.verification.application.port.out.ProviderLookupPort;
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.ProviderType;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
@@ -16,7 +19,9 @@ import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuil
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 

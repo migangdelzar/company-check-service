@@ -6,7 +6,8 @@ import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.sql.ResultSet;
 import java.time.Instant;
-import java.util.*;
+import java.util.Optional;
+import java.util.UUID;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -24,7 +25,8 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   public void insertInProgress(Verification v) {
     var e = VerificationEntity.from(v, codec.encode(v.state()), null);
     jdbc.sql(
-            "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb))")
+            "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) "
+                + "VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb))")
         .param("id", e.id())
         .param("raw", e.rawQuery())
         .param("normalized", e.normalizedQuery())
@@ -44,7 +46,9 @@ public final class JdbcVerificationRepository implements VerificationRepository 
     UUID token = UUID.randomUUID();
     int changed =
         jdbc.sql(
-                "UPDATE verifications SET claim_token=:token,claimed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=:id AND status='IN_PROGRESS' AND claim_token IS NULL")
+                "UPDATE verifications SET claim_token=:token,claimed_at=CURRENT_TIMESTAMP,"
+                    + "updated_at=CURRENT_TIMESTAMP WHERE id=:id AND status='IN_PROGRESS' "
+                    + "AND claim_token IS NULL")
             .param("id", id)
             .param("token", token)
             .update();
@@ -54,7 +58,9 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   public boolean updateTerminal(UUID id, UUID token, Verification v) {
     var e = VerificationEntity.from(v, codec.encode(v.state()), token);
     return jdbc.sql(
-                "UPDATE verifications SET status=:status,state=CAST(:state AS jsonb),updated_at=CURRENT_TIMESTAMP WHERE id=:id AND status='IN_PROGRESS' AND claim_token=:token")
+                "UPDATE verifications SET status=:status,state=CAST(:state AS jsonb),"
+                    + "updated_at=CURRENT_TIMESTAMP WHERE id=:id AND status='IN_PROGRESS' "
+                    + "AND claim_token=:token")
             .param("status", e.status())
             .param("state", e.stateJson())
             .param("id", id)
@@ -65,7 +71,11 @@ public final class JdbcVerificationRepository implements VerificationRepository 
 
   public int expireBatch(Instant now, int limit) {
     return jdbc.sql(
-            "WITH candidates AS (SELECT id FROM verifications WHERE status='IN_PROGRESS' AND expires_at<=:now AND claim_token IS NULL ORDER BY expires_at FOR UPDATE SKIP LOCKED LIMIT :limit) UPDATE verifications v SET status='FAILED',state=CAST(:state AS jsonb),updated_at=CURRENT_TIMESTAMP FROM candidates c WHERE v.id=c.id")
+            "WITH candidates AS (SELECT id FROM verifications WHERE status='IN_PROGRESS' "
+                + "AND expires_at<=:now AND claim_token IS NULL ORDER BY expires_at "
+                + "FOR UPDATE SKIP LOCKED LIMIT :limit) UPDATE verifications v SET status='FAILED',"
+                + "state=CAST(:state AS jsonb),updated_at=CURRENT_TIMESTAMP FROM candidates c "
+                + "WHERE v.id=c.id")
         .param("now", now)
         .param("limit", limit)
         .param(

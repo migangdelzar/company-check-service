@@ -1,13 +1,20 @@
 package com.incode.verification.domain;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.VerificationState;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
-import java.time.*;
-import java.util.*;
+import java.time.Instant;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 class VerificationTest {

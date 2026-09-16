@@ -1,6 +1,7 @@
 package com.incode.verification.domain.policy;
 
-import com.incode.verification.domain.type.*;
+import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.type.ProviderLookupResult;
 
 public final class FallbackPolicy {
   private FallbackPolicy() {}

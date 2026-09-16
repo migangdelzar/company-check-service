@@ -1,12 +1,18 @@
 package com.incode.verification.adapter.config;
 
-import com.incode.verification.application.port.in.*;
-import com.incode.verification.application.port.out.*;
+import com.incode.verification.application.port.in.ExpireVerificationsUseCase;
+import com.incode.verification.application.port.in.GetVerificationUseCase;
+import com.incode.verification.application.port.in.StartVerificationUseCase;
+import com.incode.verification.application.port.out.CoordinationPort;
+import com.incode.verification.application.port.out.ProviderLookupPort;
+import com.incode.verification.application.port.out.VerificationLifecycle;
+import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.service.VerificationApplicationService;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration(proxyBeanMethods = false)

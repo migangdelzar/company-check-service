@@ -1,12 +1,20 @@
 package com.incode.verification.application.service;
 
 import com.incode.verification.application.context.ExecutionContext;
-import com.incode.verification.application.port.in.*;
-import com.incode.verification.application.port.out.*;
+import com.incode.verification.application.port.in.GetVerificationUseCase;
+import com.incode.verification.application.port.in.StartVerificationUseCase;
+import com.incode.verification.application.port.out.CoordinationPort;
+import com.incode.verification.application.port.out.ProviderLookupPort;
+import com.incode.verification.application.port.out.VerificationLifecycle;
+import com.incode.verification.application.port.out.VerificationRepository;
+import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.policy.FallbackPolicy;
-import com.incode.verification.domain.type.*;
-import com.incode.verification.domain.valueobject.*;
+import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.VerificationState;
+import com.incode.verification.domain.type.VerificationStatus;
+import com.incode.verification.domain.valueobject.LookupKey;
+import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
