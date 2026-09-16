@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.Exec
+
 plugins {
   java
   checkstyle
@@ -32,8 +34,6 @@ dependencies {
   testImplementation(libs.spring.modulith.core)
   testRuntimeOnly(libs.junit.platform.launcher)
   testImplementation(libs.spring.boot.starter.test)
-  testImplementation(libs.testcontainers.junit.jupiter)
-  testImplementation(libs.testcontainers.postgresql)
 }
 
 val openApiContracts =
@@ -104,26 +104,15 @@ val performanceTest =
     }
   }
 
+val openApiReportDirectory = layout.buildDirectory.dir("reports/openapi")
 val openApiValidate =
-  tasks.register("openApiValidate") {
+  tasks.register<Exec>("openApiValidate") {
     group = "verification"
     description = "Validates all checked-in OpenAPI contracts with the pinned Redocly CLI."
     inputs.files(openApiContracts).withPropertyName("openApiContracts")
-    outputs.dir(layout.buildDirectory.dir("reports/openapi"))
-    doLast {
-      val reportDirectory =
-        layout.buildDirectory
-          .dir("reports/openapi")
-          .get()
-          .asFile
-      reportDirectory.mkdirs()
-      providers
-        .exec {
-          commandLine("npx", "--yes", "@redocly/cli@1.34.0", "lint", *openApiContracts.files.map { it.path }.toTypedArray())
-        }.result
-        .get()
-        .rethrowFailure()
-    }
+    outputs.dir(openApiReportDirectory)
+    commandLine("npx", "--yes", "@redocly/cli@1.34.0", "lint")
+    args(openApiContracts.files.map { it.path })
   }
 
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
@@ -229,6 +218,10 @@ testing {
         }
         dependencies {
           implementation(project())
+          if (suiteName == "integrationTest") {
+            implementation(libs.testcontainers.junit.jupiter)
+            implementation(libs.testcontainers.postgresql)
+          }
         }
       }
     }
