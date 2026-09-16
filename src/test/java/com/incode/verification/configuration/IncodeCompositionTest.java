@@ -9,9 +9,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.Configuration;
 
 class IncodeCompositionTest {
-    @Test
-    void compositionIsExplicitAndSchedulingIsAdapterOwned() {
-        assertFalse(Configuration.class.cast(ApplicationConfiguration.class.getAnnotation(Configuration.class)).proxyBeanMethods());
-        assertTrue(VerificationExpirationScheduler.class.isAnnotationPresent(org.springframework.stereotype.Component.class));
-    }
+  @Test
+  void compositionIsExplicitAndSchedulingIsAdapterOwned() {
+    assertFalse(
+        Configuration.class
+            .cast(ApplicationConfiguration.class.getAnnotation(Configuration.class))
+            .proxyBeanMethods());
+    assertTrue(
+        VerificationExpirationScheduler.class.isAnnotationPresent(
+            org.springframework.stereotype.Component.class));
+  }
 }

@@ -4,5 +4,5 @@ import com.incode.verification.application.port.out.VerificationView;
 import java.util.UUID;
 
 public interface GetVerificationUseCase {
-    VerificationView get(UUID verificationId);
+  VerificationView get(UUID verificationId);
 }

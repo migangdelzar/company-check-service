@@ -6,5 +6,5 @@ import com.incode.verification.domain.valueobject.NormalizedQuery;
 
 /** Provider-neutral boundary; adapters translate vendor responses into domain results. */
 public interface ProviderLookupPort {
-    ProviderLookupResult lookup(NormalizedQuery query, ExecutionContext context);
+  ProviderLookupResult lookup(NormalizedQuery query, ExecutionContext context);
 }

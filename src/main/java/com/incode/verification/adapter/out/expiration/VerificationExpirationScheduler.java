@@ -10,29 +10,29 @@ import org.springframework.stereotype.Component;
 
 @Component
 public final class VerificationExpirationScheduler {
-    private static final int BATCH_SIZE = 100;
-    private final ExpireVerificationsUseCase expiration;
-    private final Clock clock;
+  private static final int BATCH_SIZE = 100;
+  private final ExpireVerificationsUseCase expiration;
+  private final Clock clock;
 
-    public VerificationExpirationScheduler(ExpireVerificationsUseCase expiration, Clock clock) {
-        this.expiration = expiration;
-        this.clock = clock;
-    }
+  public VerificationExpirationScheduler(ExpireVerificationsUseCase expiration, Clock clock) {
+    this.expiration = expiration;
+    this.clock = clock;
+  }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void recoverExpiredVerifications() {
-        expireUntilDrained();
-    }
+  @EventListener(ApplicationReadyEvent.class)
+  public void recoverExpiredVerifications() {
+    expireUntilDrained();
+  }
 
-    @Scheduled(fixedDelayString = "${verification.expiration.reaper-delay:1000ms}")
-    public void reapExpiredVerifications() {
-        expireUntilDrained();
-    }
+  @Scheduled(fixedDelayString = "${verification.expiration.reaper-delay:1000ms}")
+  public void reapExpiredVerifications() {
+    expireUntilDrained();
+  }
 
-    private void expireUntilDrained() {
-        int expired;
-        do {
-            expired = expiration.expire(Instant.now(clock), BATCH_SIZE);
-        } while (expired == BATCH_SIZE);
-    }
+  private void expireUntilDrained() {
+    int expired;
+    do {
+      expired = expiration.expire(Instant.now(clock), BATCH_SIZE);
+    } while (expired == BATCH_SIZE);
+  }
 }
