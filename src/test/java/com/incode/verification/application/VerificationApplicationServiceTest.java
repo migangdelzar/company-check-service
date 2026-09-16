@@ -1,6 +1,7 @@
 package com.incode.verification.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.incode.verification.application.context.ExecutionContext;
@@ -15,6 +16,7 @@ import com.incode.verification.application.service.VerificationApplicationServic
 import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.type.ProviderFailure;
 import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.ProviderType;
 import com.incode.verification.domain.type.VerificationStatus;
 import com.incode.verification.domain.valueobject.LookupKey;
 import java.time.Clock;
@@ -97,6 +99,148 @@ class VerificationApplicationServiceTest {
     assertEquals(List.of("primary", "fallback"), calls);
   }
 
+  @Test
+  void replaysTerminalVerificationAndRejectsIdReuse() {
+    var repository = new MemoryRepository();
+    var id = UUID.randomUUID();
+    var verification =
+        Verification.start(
+                id,
+                " Acme ",
+                new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+                now,
+                now.plusSeconds(60))
+            .complete(
+                new ProviderLookupResult.Success(
+                    List.of(
+                        new com.incode.verification.domain.entity.Company(
+                            "A", "A", LocalDate.parse("2020-01-01"), "x", true)),
+                    ProviderType.FREE),
+                now);
+    repository.values.put(id, verification);
+    var providerCalls = new ArrayList<String>();
+    var provider =
+        (ProviderLookupPort)
+            (q, c) -> {
+              providerCalls.add(q.value());
+              return new ProviderLookupResult.Success(List.of());
+            };
+    var service = service(repository, provider, provider);
+
+    assertEquals(
+        VerificationStatus.COMPLETED,
+        service.start(new StartVerificationCommand(id, "acme")).status());
+    assertThrows(
+        com.incode.verification.application.service.VerificationConflictException.class,
+        () -> service.start(new StartVerificationCommand(id, "other")));
+    assertEquals(List.of(), providerCalls);
+  }
+
+  @Test
+  void returnsConflictForExistingInProgressVerification() {
+    var repository = new MemoryRepository();
+    var id = UUID.randomUUID();
+    repository.values.put(
+        id,
+        Verification.start(
+            id,
+            "acme",
+            new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+            now,
+            now.plusSeconds(60)));
+    var service =
+        service(
+            repository,
+            (q, c) -> new ProviderLookupResult.Success(List.of()),
+            (q, c) -> new ProviderLookupResult.Success(List.of()));
+    var error =
+        assertThrows(
+            com.incode.verification.application.service.VerificationConflictException.class,
+            () -> service.start(new StartVerificationCommand(id, "ACME")));
+    assertEquals("VERIFICATION_IN_PROGRESS", error.code());
+  }
+
+  @Test
+  void completesFromSharedCacheWithoutCallingProviders() {
+    var repository = new MemoryRepository();
+    var lifecycle = new RecordingLifecycle(repository);
+    var cached =
+        new VerificationView(
+            UUID.randomUUID(),
+            "ACME",
+            "ACME",
+            now,
+            now.plusSeconds(60),
+            VerificationStatus.COMPLETED,
+            new com.incode.verification.domain.entity.Company(
+                "A", "A", LocalDate.parse("2020-01-01"), "x", true),
+            List.of(),
+            ProviderType.PREMIUM,
+            null);
+    var service =
+        new VerificationApplicationService(
+            repository,
+            lifecycle,
+            new CachedCoordination(cached),
+            (q, c) -> {
+              throw new AssertionError("provider must not be called");
+            },
+            (q, c) -> {
+              throw new AssertionError("provider must not be called");
+            },
+            Clock.fixed(now, ZoneOffset.UTC),
+            Duration.ofMinutes(1));
+    assertEquals(
+        VerificationStatus.COMPLETED,
+        service.start(new StartVerificationCommand(UUID.randomUUID(), "ACME")).status());
+  }
+
+  @Test
+  void returnsInProgressWhenAnotherLeaseOwnerHasNoResultYet() {
+    var repository = new MemoryRepository();
+    var service =
+        new VerificationApplicationService(
+            repository,
+            new RecordingLifecycle(repository),
+            new WaitingCoordination(),
+            (q, c) -> {
+              throw new AssertionError("provider must not be called");
+            },
+            (q, c) -> {
+              throw new AssertionError("provider must not be called");
+            },
+            Clock.fixed(now, ZoneOffset.UTC),
+            Duration.ofMinutes(1));
+    assertEquals(
+        VerificationStatus.IN_PROGRESS,
+        service.start(new StartVerificationCommand(UUID.randomUUID(), "ACME")).status());
+  }
+
+  @Test
+  void missingVerificationIsNotFound() {
+    var repository = new MemoryRepository();
+    var service =
+        service(
+            repository,
+            (q, c) -> new ProviderLookupResult.Success(List.of()),
+            (q, c) -> new ProviderLookupResult.Success(List.of()));
+    assertInstanceOf(
+        IllegalArgumentException.class,
+        assertThrows(IllegalArgumentException.class, () -> service.get(UUID.randomUUID())));
+  }
+
+  private VerificationApplicationService service(
+      MemoryRepository repository, ProviderLookupPort primary, ProviderLookupPort fallback) {
+    return new VerificationApplicationService(
+        repository,
+        new RecordingLifecycle(repository),
+        new NoopCoordination(),
+        primary,
+        fallback,
+        Clock.fixed(now, ZoneOffset.UTC),
+        Duration.ofMinutes(1));
+  }
+
   private static final class MemoryRepository implements VerificationRepository {
     private final Map<UUID, Verification> values = new HashMap<>();
 
@@ -149,7 +293,7 @@ class VerificationApplicationServiceTest {
     }
   }
 
-  private static final class NoopCoordination implements CoordinationPort {
+  private static class NoopCoordination implements CoordinationPort {
     @Override
     public Lease acquire(LookupKey key) {
       return new Lease() {
@@ -170,5 +314,33 @@ class VerificationApplicationServiceTest {
 
     @Override
     public void cache(LookupKey key, VerificationView view) {}
+  }
+
+  private static final class CachedCoordination extends NoopCoordination {
+    private final VerificationView cached;
+
+    CachedCoordination(VerificationView cached) {
+      this.cached = cached;
+    }
+
+    @Override
+    public Optional<VerificationView> cached(LookupKey key) {
+      return Optional.of(cached);
+    }
+  }
+
+  private static final class WaitingCoordination extends NoopCoordination {
+    @Override
+    public Lease acquire(LookupKey key) {
+      return new Lease() {
+        @Override
+        public boolean acquired() {
+          return false;
+        }
+
+        @Override
+        public void close() {}
+      };
+    }
   }
 }

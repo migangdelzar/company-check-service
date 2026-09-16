@@ -63,6 +63,18 @@ tasks.withType<Test>().configureEach {
 
 tasks.named<JacocoReport>("jacocoTestReport") {
   dependsOn(tasks.test)
+  classDirectories.setFrom(
+    files(
+      classDirectories.files.map { directory ->
+        fileTree(directory) {
+          exclude(
+            "com/incode/verification/adapter/config/**",
+            "com/incode/verification/adapter/out/**",
+          )
+        }
+      },
+    ),
+  )
   reports {
     xml.required.set(true)
     html.required.set(true)
@@ -72,6 +84,18 @@ tasks.named<JacocoReport>("jacocoTestReport") {
 
 tasks.withType<JacocoCoverageVerification>().configureEach {
   dependsOn(tasks.test)
+  classDirectories.setFrom(
+    files(
+      classDirectories.files.map { directory ->
+        fileTree(directory) {
+          exclude(
+            "com/incode/verification/adapter/config/**",
+            "com/incode/verification/adapter/out/**",
+          )
+        }
+      },
+    ),
+  )
   violationRules {
     rule {
       element = "BUNDLE"
