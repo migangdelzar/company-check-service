@@ -75,10 +75,12 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
     }
 }
 
-listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
-    tasks.withType<Test>().matching { it.name == suiteName }.configureEach {
-        outputs.cacheIf { false }
-        outputs.upToDateWhen { false }
+testing.suites.withType<JvmTestSuite>().configureEach {
+    targets.configureEach {
+        testTask.configure {
+            outputs.cacheIf { false }
+            outputs.upToDateWhen { false }
+        }
     }
 }
 
