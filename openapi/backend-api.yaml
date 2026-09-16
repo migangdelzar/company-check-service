@@ -2,11 +2,16 @@ openapi: 3.0.3
 info:
   title: Company Check Backend API
   version: 1.0.0
+  license:
+    name: Proprietary
+    url: https://www.incode.com/
 servers:
-  - url: http://localhost:8080
+  - url: /
+security: []
 paths:
   /backend-service:
     get:
+      operationId: startOrRetrieveVerification
       summary: Start or retrieve a verification
       description: >
         Starts a verification for a new verificationId. Repeating the same
@@ -35,6 +40,7 @@ paths:
           $ref: '#/components/responses/ProvidersUnavailable'
   /backend-service/{verificationId}:
     get:
+      operationId: retrieveVerification
       summary: Retrieve a stored verification
       description: Returns the current stored state without invoking a provider.
       parameters:
