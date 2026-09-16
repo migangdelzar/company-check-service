@@ -11,6 +11,7 @@ import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.application.service.VerificationApplicationService;
+import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.type.ProviderFailure;
 import com.incode.verification.domain.type.ProviderLookupResult;
@@ -51,7 +52,10 @@ class VerificationApplicationServiceTest {
             Duration.ofMinutes(1));
     VerificationView view =
         ScopedValue.where(ExecutionContext.CURRENT, new ExecutionContext(UUID.randomUUID()))
-            .call(() -> service.start(new StartVerificationCommand(" acme ")));
+            .call(
+                () ->
+                    service.start(
+                        new StartVerificationCommand(UUID.randomUUID(), " acme ")));
     assertEquals(VerificationStatus.COMPLETED, view.status());
     assertThrows(
         UnsupportedOperationException.class, () -> view.otherResults().add(view.company()));
@@ -84,10 +88,12 @@ class VerificationApplicationServiceTest {
             fallback,
             Clock.fixed(now, ZoneOffset.UTC),
             Duration.ofMinutes(1));
-    var view =
-        ScopedValue.where(ExecutionContext.CURRENT, new ExecutionContext(UUID.randomUUID()))
-            .call(() -> service.start(new StartVerificationCommand("acme")));
-    assertEquals(VerificationStatus.FAILED, view.status());
+    assertThrows(
+        ProviderSubmissionException.class,
+        () ->
+            ScopedValue.where(ExecutionContext.CURRENT, new ExecutionContext(UUID.randomUUID()))
+                .call(
+                    () -> service.start(new StartVerificationCommand(UUID.randomUUID(), "acme"))));
     assertEquals(List.of("primary", "fallback"), calls);
   }
 
@@ -104,6 +110,17 @@ class VerificationApplicationServiceTest {
 
     public Optional<Verification> findById(UUID id) {
       return Optional.ofNullable(values.get(id));
+    }
+
+    @Override
+    public UUID claim(UUID id) {
+      return values.containsKey(id) ? UUID.randomUUID() : null;
+    }
+
+    @Override
+    public boolean updateTerminal(UUID id, UUID token, Verification v) {
+      values.put(id, v);
+      return true;
     }
   }
 

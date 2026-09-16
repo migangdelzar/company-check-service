@@ -32,7 +32,11 @@ class BackendServiceControllerTest {
     var id = UUID.randomUUID();
     when(starter.start(any())).thenReturn(view(id));
 
-    mvc.perform(get("/backend-service").param("query", "Acme"))
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
+                    "/backend-service")
+                .param("verificationId", id.toString())
+                .param("query", "Acme"))
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-cache"))
         .andExpect(jsonPath("$.verificationId").value(id.toString()))
@@ -41,7 +45,11 @@ class BackendServiceControllerTest {
 
   @Test
   void blankQueryUsesProblemDetails() throws Exception {
-    mvc.perform(get("/backend-service").param("query", " "))
+    mvc.perform(
+            org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post(
+                    "/backend-service")
+                .param("verificationId", UUID.randomUUID().toString())
+                .param("query", " "))
         .andExpect(status().isBadRequest())
         .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
         .andExpect(jsonPath("$.title").value("Invalid request"));
@@ -51,7 +59,7 @@ class BackendServiceControllerTest {
   void retrievalDelegatesByVerificationId() throws Exception {
     var id = UUID.randomUUID();
     when(retriever.get(id)).thenReturn(view(id));
-    mvc.perform(get("/backend-service/{id}", id))
+    mvc.perform(get("/verifications/{id}", id))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.verificationId").value(id.toString()));
     verify(retriever).get(id);

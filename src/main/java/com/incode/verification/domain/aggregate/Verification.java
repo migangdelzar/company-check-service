@@ -1,8 +1,8 @@
 package com.incode.verification.domain.aggregate;
 
 import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.ProviderFailure;
 import com.incode.verification.domain.type.ProviderLookupResult;
+import com.incode.verification.domain.type.ProviderFailure;
 import com.incode.verification.domain.type.VerificationState;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.time.Instant;
@@ -37,7 +37,6 @@ public record Verification(
   public Verification complete(ProviderLookupResult.Success result, Instant now) {
     requireInProgress();
     List<Company> active = result.companies().stream().filter(Company::active).toList();
-    if (active.isEmpty()) return fail(new ProviderFailure.Unavailable(), now);
     return new Verification(
         id,
         rawQuery,
@@ -45,7 +44,9 @@ public record Verification(
         startedAt,
         expiresAt,
         new VerificationState.Completed(
-            active.getFirst(), active.subList(1, active.size()), result.provider()));
+            active.isEmpty() ? null : active.getFirst(),
+            active.size() < 2 ? List.of() : active.subList(1, active.size()),
+            result.provider()));
   }
 
   public Verification fail(ProviderFailure failure, Instant now) {
