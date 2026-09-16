@@ -2,7 +2,21 @@
 junit = "5.12.2"
 junit-platform = "1.12.2"
 checkstyle = "10.21.2"
+spring-boot = "3.5.6"
+spotless = "7.2.1"
+error-prone = "4.2.0"
+error-prone-core = "2.36.0"
+archunit = "1.4.1"
+spring-modulith = "1.4.3"
 [libraries]
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+spring-modulith-core = { module = "org.springframework.modulith:spring-modulith-core", version.ref = "spring-modulith" }
+error-prone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "error-prone-core" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+error-prone = { id = "net.ltgt.errorprone", version.ref = "error-prone" }

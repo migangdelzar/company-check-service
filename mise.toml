@@ -1,6 +1,7 @@
 [tools]
 java = "25.0.1"
 docker = "27.5.1"
+docker-compose = "2.35.1"
 colima = "0.8.1"
 pack = "0.36.4"
 locust = "2.32.10"
