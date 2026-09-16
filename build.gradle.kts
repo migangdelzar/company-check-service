@@ -21,7 +21,7 @@ dependencies {
   implementation(libs.spring.boot.starter.actuator)
   implementation(libs.spring.boot.starter.validation)
   implementation(libs.httpclient5)
-  implementation(libs.resilience4j.spring.boot3)
+  implementation(libs.resilience4j.spring.boot4)
   implementation(libs.caffeine)
   implementation(libs.jackson.databind)
   implementation(libs.flyway.core)
