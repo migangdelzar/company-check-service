@@ -19,10 +19,10 @@ trap 'docker rm -f "$container_id" >/dev/null 2>&1 || true' EXIT
 docker start "$container_id" >/dev/null
 
 status=0
-for ((second = 0; second < deadline_seconds; second++)); do
+deadline=$((SECONDS + deadline_seconds))
+while (( SECONDS < deadline )); do
   running="$(docker inspect --format '{{.State.Running}}' "$container_id")"
   [[ "$running" == "false" ]] && break
-  sleep 1
 done
 
 running="$(docker inspect --format '{{.State.Running}}' "$container_id")"
