@@ -1,9 +1,12 @@
 [versions]
+java = "25"
 junit = "5.12.2"
 junit-platform = "1.12.2"
 checkstyle = "10.21.2"
 spring-boot = "4.1.1"
 spotless = "7.2.1"
+google-java-format = "1.28.0"
+redocly-cli = "1.34.0"
 error-prone = "4.2.0"
 error-prone-core = "2.36.0"
 archunit = "1.4.1"
@@ -15,6 +18,9 @@ httpclient5 = "5.4.3"
 uuid-creator = "6.1.1"
 [libraries]
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
+spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
+error-prone-gradle-plugin = { module = "net.ltgt.gradle:gradle-errorprone-plugin", version.ref = "error-prone" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }

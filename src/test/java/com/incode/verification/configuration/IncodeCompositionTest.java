@@ -26,12 +26,17 @@ class IncodeCompositionTest {
   void approvedSpringBaselineIsDeclaredInVersionCatalog() throws Exception {
     String catalog = Files.readString(Path.of("gradle/libs.versions.toml"));
     String build = Files.readString(Path.of("build.gradle.kts"));
+    String javaConvention =
+        Files.readString(
+            Path.of("build-logic/src/main/kotlin/com.incode.java-conventions.gradle.kts"));
 
     assertTrue(catalog.contains("spring-boot = \"4.1.1\""));
     assertTrue(catalog.contains("spring-modulith = \"2.1.1\""));
     assertTrue(catalog.contains("resilience4j = \"2.4.0\""));
     assertTrue(catalog.contains("resilience4j-spring-boot4"));
-    assertTrue(build.contains("JavaLanguageVersion.of(25)"));
+    assertTrue(catalog.contains("java = \"25\""));
+    assertTrue(javaConvention.contains("findVersion(\"java\")"));
+    assertFalse(build.contains("JavaLanguageVersion.of(25)"));
     assertFalse(catalog.contains("resilience4j-spring-boot3"));
   }
 }
