@@ -12,12 +12,20 @@ plugins {
 java.toolchain.languageVersion.set(JavaLanguageVersion.of(25))
 
 dependencies {
+    implementation(libs.spring.boot.starter.jdbc)
+    implementation(libs.jackson.databind)
+    implementation(libs.flyway.core)
+    implementation(libs.flyway.database.postgresql)
+    runtimeOnly(libs.postgresql)
     checkstyle(libs.checkstyle)
     errorprone(libs.error.prone.core)
     testImplementation(libs.junit.jupiter)
     testImplementation(libs.archunit.junit5)
     testImplementation(libs.spring.modulith.core)
     testRuntimeOnly(libs.junit.platform.launcher)
+    testImplementation(libs.spring.boot.starter.test)
+    testImplementation(libs.testcontainers.junit.jupiter)
+    testImplementation(libs.testcontainers.postgresql)
 }
 dependencyLocking { lockAllConfigurations() }
 tasks.test { useJUnitPlatform() }
