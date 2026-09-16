@@ -20,6 +20,8 @@ class RedisCoordinationAdapterTest {
         new CoordinationProperties(
             1,
             Duration.ofMinutes(1),
+            Duration.ofMinutes(1),
+            Duration.ofMinutes(1),
             Duration.ZERO,
             Duration.ofSeconds(1),
             Duration.ZERO,

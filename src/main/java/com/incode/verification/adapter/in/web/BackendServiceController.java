@@ -8,8 +8,8 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,7 +28,8 @@ public class BackendServiceController {
   }
 
   @PostMapping("/backend-service")
-  public ResponseEntity<VerificationResponse> lookup(@Valid @ModelAttribute BackendServiceRequest request) {
+  public ResponseEntity<VerificationResponse> lookup(
+      @Valid @ModelAttribute BackendServiceRequest request) {
     var result =
         starter.start(
             new StartVerificationUseCase.StartVerificationCommand(
@@ -44,7 +45,7 @@ public class BackendServiceController {
   private ResponseEntity<VerificationResponse> response(
       com.incode.verification.application.port.out.VerificationView view) {
     return ResponseEntity.ok()
-        .cacheControl(CacheControl.noCache())
+        .cacheControl(CacheControl.noStore())
         .body(VerificationResponse.from(view));
   }
 }

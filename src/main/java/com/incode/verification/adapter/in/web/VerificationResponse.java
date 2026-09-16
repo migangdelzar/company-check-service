@@ -4,6 +4,7 @@ import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.domain.entity.Company;
 import com.incode.verification.domain.type.VerificationStatus;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -36,11 +37,17 @@ public record VerificationResponse(
         view.failure() == null ? null : view.failure().getClass().getSimpleName());
   }
 
-  public record CompanyResponse(String name, String address, boolean active) {
+  public record CompanyResponse(
+      String cin, String name, LocalDate registrationDate, String address, boolean isActive) {
     static CompanyResponse from(Company company) {
       return company == null
           ? null
-          : new CompanyResponse(company.name(), company.address(), company.active());
+          : new CompanyResponse(
+              company.cin(),
+              company.name(),
+              company.registrationDate(),
+              company.address(),
+              company.isActive());
     }
   }
 }

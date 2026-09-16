@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -24,17 +25,22 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   @Override
   public void insertInProgress(Verification v) {
     var e = VerificationEntity.from(v, codec.encode(v.state()), null);
-    jdbc.sql(
-            "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) "
-                + "VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb))")
-        .param("id", e.id())
-        .param("raw", e.rawQuery())
-        .param("normalized", e.normalizedQuery())
-        .param("started", e.startedAt())
-        .param("expires", e.expiresAt())
-        .param("status", e.status())
-        .param("state", e.stateJson())
-        .update();
+    try {
+      jdbc.sql(
+              "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) "
+                  + "VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb))")
+          .param("id", e.id())
+          .param("raw", e.rawQuery())
+          .param("normalized", e.normalizedQuery())
+          .param("started", e.startedAt())
+          .param("expires", e.expiresAt())
+          .param("status", e.status())
+          .param("state", e.stateJson())
+          .update();
+    } catch (DataIntegrityViolationException exception) {
+      throw new com.incode.verification.application.port.out.VerificationAlreadyExistsException(
+          exception);
+    }
   }
 
   @Override
@@ -42,6 +48,7 @@ public final class JdbcVerificationRepository implements VerificationRepository 
     throw new UnsupportedOperationException("terminal updates require a claim token");
   }
 
+  @Override
   public UUID claim(UUID id) {
     UUID token = UUID.randomUUID();
     int changed =
@@ -55,6 +62,7 @@ public final class JdbcVerificationRepository implements VerificationRepository 
     return changed == 1 ? token : null;
   }
 
+  @Override
   public boolean updateTerminal(UUID id, UUID token, Verification v) {
     var e = VerificationEntity.from(v, codec.encode(v.state()), token);
     return jdbc.sql(
@@ -69,6 +77,7 @@ public final class JdbcVerificationRepository implements VerificationRepository 
         == 1;
   }
 
+  @Override
   public int expireBatch(Instant now, int limit) {
     return jdbc.sql(
             "WITH candidates AS (SELECT id FROM verifications WHERE status='IN_PROGRESS' "

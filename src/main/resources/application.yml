@@ -2,27 +2,59 @@ spring:
   threads:
     virtual:
       enabled: true
+  datasource:
+    hikari:
+      maximum-pool-size: 32
+      minimum-idle: 4
+      connection-timeout: 500ms
+      validation-timeout: 250ms
+  data:
+    redis:
+      timeout: 500ms
+      connect-timeout: 250ms
 
 verification:
   expiration:
     reaper-delay: 1000ms
   providers:
     attempt-timeout: 500ms
-    free: { base-url: ${VERIFICATION_FREE_BASE_URL:http://localhost:8081}, path: ${VERIFICATION_FREE_PATH:/companies?query={query}}, api-key: ${VERIFICATION_FREE_API_KEY:} }
-    premium: { base-url: ${VERIFICATION_PREMIUM_BASE_URL:http://localhost:8082}, path: ${VERIFICATION_PREMIUM_PATH:/companies?query={query}}, api-key: ${VERIFICATION_PREMIUM_API_KEY:} }
+    free: { base-url: ${VERIFICATION_FREE_BASE_URL:http://localhost:8081}, path: ${VERIFICATION_FREE_PATH:/free-third-party?query={query}}, api-key: ${VERIFICATION_FREE_API_KEY:} }
+    premium: { base-url: ${VERIFICATION_PREMIUM_BASE_URL:http://localhost:8082}, path: ${VERIFICATION_PREMIUM_PATH:/premium-third-party?query={query}}, api-key: ${VERIFICATION_PREMIUM_API_KEY:} }
   coordination:
     l1-maximum-size: 10000
     ttl: 10m
+    match-ttl: 24h
+    no-match-ttl: 10m
     jitter: 30s
     lease-ttl: 20s
     waiter-poll: 50ms
     waiter-attempts: 20
     key-prefix: company-check:
 resilience4j:
-  retry: { instances: { provider: { max-attempts: 2, wait-duration: 25ms } } }
-  circuitbreaker: { instances: { provider: { sliding-window-size: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s } } }
-  ratelimiter: { instances: { provider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 } } }
-  bulkhead: { instances: { provider: { max-concurrent-calls: 50, max-wait-duration: 0 } } }
+  retry:
+    instances:
+      freeProvider:
+        max-attempts: 2
+        wait-duration: 25ms
+        retry-exceptions:
+          - com.incode.verification.adapter.out.provider.ProviderTransientException
+      premiumProvider:
+        max-attempts: 2
+        wait-duration: 25ms
+        retry-exceptions:
+          - com.incode.verification.adapter.out.provider.ProviderTransientException
+  circuitbreaker:
+    instances:
+      freeProvider: { sliding-window-size: 20, minimum-number-of-calls: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s, permitted-number-of-calls-in-half-open-state: 2 }
+      premiumProvider: { sliding-window-size: 20, minimum-number-of-calls: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s, permitted-number-of-calls-in-half-open-state: 2 }
+  ratelimiter:
+    instances:
+      freeProvider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 }
+      premiumProvider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 }
+  bulkhead:
+    instances:
+      freeProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
+      premiumProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
 management:
   endpoints:
     web:

@@ -12,7 +12,7 @@ public final class FallbackPolicy {
           case ProviderFailure.Unavailable ignored -> true;
           case ProviderFailure.Malformed ignored -> true;
           case ProviderFailure.ClientError ignored -> false;
-          case ProviderFailure.Timeout ignored -> false;
+          case ProviderFailure.Timeout ignored -> true;
         };
   }
 }

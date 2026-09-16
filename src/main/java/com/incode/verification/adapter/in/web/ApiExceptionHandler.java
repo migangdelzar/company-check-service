@@ -1,9 +1,10 @@
 package com.incode.verification.adapter.in.web;
 
-import java.net.URI;
-import java.util.stream.Collectors;
 import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.VerificationConflictException;
+import com.incode.verification.domain.valueobject.InvalidQueryException;
+import java.net.URI;
+import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
@@ -18,7 +19,8 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class ApiExceptionHandler {
   @ExceptionHandler({
     MethodArgumentNotValidException.class,
-    MethodArgumentTypeMismatchException.class
+    MethodArgumentTypeMismatchException.class,
+    InvalidQueryException.class
   })
   ResponseEntity<ProblemDetail> invalid(Exception exception) {
     var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail(exception));

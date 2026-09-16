@@ -5,6 +5,7 @@ import com.incode.verification.application.port.in.GetVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
+import com.incode.verification.application.port.out.VerificationAlreadyExistsException;
 import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
@@ -54,20 +55,20 @@ public final class VerificationApplicationService
     var normalized = NormalizedQuery.normalize(command.query());
     var existing = repository.findById(verificationId);
     if (existing.isPresent()) {
-      var stored = existing.orElseThrow();
-      if (!stored.query().equals(normalized))
-        throw new VerificationConflictException(
-            "VERIFICATION_ID_REUSE", "verificationId is already associated with another query");
-      if (stored.state() instanceof VerificationState.InProgress)
-        throw new VerificationConflictException(
-            "VERIFICATION_IN_PROGRESS", "verification is already in progress");
-      return view(stored);
+      return existingResult(existing.orElseThrow(), normalized);
     }
     var key = new LookupKey(normalized);
     var now = Instant.now(clock);
     var verification =
         Verification.start(verificationId, command.query(), normalized, now, now.plus(lifetime));
-    lifecycle.start(verification);
+    try {
+      lifecycle.start(verification);
+    } catch (VerificationAlreadyExistsException race) {
+      return repository
+          .findById(verificationId)
+          .map(stored -> existingResult(stored, normalized))
+          .orElseThrow(() -> race);
+    }
     try (var lease = coordination.acquire(key)) {
       if (!lease.acquired()) {
         var cached = coordination.cached(key);
@@ -145,6 +146,16 @@ public final class VerificationApplicationService
     };
   }
 
+  private VerificationView existingResult(Verification stored, NormalizedQuery normalized) {
+    if (!stored.query().equals(normalized))
+      throw new VerificationConflictException(
+          "VERIFICATION_ID_REUSE", "verificationId is already associated with another query");
+    if (stored.state() instanceof VerificationState.InProgress)
+      throw new VerificationConflictException(
+          "VERIFICATION_IN_PROGRESS", "verification is already in progress");
+    return view(stored);
+  }
+
   private ProviderLookupResult lookup(
       ProviderLookupPort provider, NormalizedQuery query, ExecutionContext context) {
     try {
@@ -161,7 +172,8 @@ public final class VerificationApplicationService
       Verification verification, VerificationView cached, LookupKey key) {
     var companies =
         java.util.stream.Stream.concat(
-                java.util.stream.Stream.ofNullable(cached.company()), cached.otherResults().stream())
+                java.util.stream.Stream.ofNullable(cached.company()),
+                cached.otherResults().stream())
             .toList();
     var completed =
         verification.complete(
@@ -181,7 +193,6 @@ public final class VerificationApplicationService
     lifecycle.transition(
         verification,
         r -> updated[0] = r.updateTerminal(verification.id(), claimToken, verification));
-    if (!updated[0])
-      throw new IllegalStateException("verification terminal update lost ownership");
+    if (!updated[0]) throw new IllegalStateException("verification terminal update lost ownership");
   }
 }

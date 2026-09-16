@@ -26,10 +26,12 @@ public class ApplicationConfiguration {
   @Bean
   VerificationLifecycle verificationLifecycle(VerificationRepository repository) {
     return new VerificationLifecycle() {
+      @Override
       public void start(com.incode.verification.domain.aggregate.Verification verification) {
         repository.insertInProgress(verification);
       }
 
+      @Override
       public void transition(
           com.incode.verification.domain.aggregate.Verification verification,
           java.util.function.Consumer<VerificationRepository> write) {

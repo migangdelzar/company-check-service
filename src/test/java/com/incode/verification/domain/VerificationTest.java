@@ -1,7 +1,6 @@
 package com.incode.verification.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -13,6 +12,7 @@ import com.incode.verification.domain.type.ProviderLookupResult;
 import com.incode.verification.domain.type.VerificationState;
 import com.incode.verification.domain.valueobject.NormalizedQuery;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -38,21 +38,25 @@ class VerificationTest {
             .complete(
                 new ProviderLookupResult.Success(
                     List.of(
-                        new Company("off", "x", false),
-                        new Company("A", "x", true),
-                        new Company("B", "y", true))),
+                        new Company("OFF", "off", LocalDate.parse("2020-01-01"), "x", false),
+                        new Company("A", "A", LocalDate.parse("2020-01-01"), "x", true),
+                        new Company("B", "B", LocalDate.parse("2020-01-01"), "y", true))),
                 now);
     assertInstanceOf(VerificationState.Completed.class, v.state());
     var c = (VerificationState.Completed) v.state();
     assertEquals("A", c.company().name());
-    assertEquals(List.of(new Company("B", "y", true)), c.otherResults());
+    assertEquals(
+        List.of(new Company("B", "B", LocalDate.parse("2020-01-01"), "y", true)), c.otherResults());
   }
 
   @Test
   void rejectsDuplicateCompletion() {
     var v =
         verification()
-            .complete(new ProviderLookupResult.Success(List.of(new Company("A", "x", true))), now);
+            .complete(
+                new ProviderLookupResult.Success(
+                    List.of(new Company("A", "A", LocalDate.parse("2020-01-01"), "x", true))),
+                now);
     assertThrows(
         IllegalStateException.class,
         () -> v.complete(new ProviderLookupResult.Success(List.of()), now));
@@ -63,7 +67,7 @@ class VerificationTest {
     assertTrue(
         com.incode.verification.domain.policy.FallbackPolicy.shouldFallback(
             new ProviderLookupResult.Failure(new ProviderFailure.Malformed())));
-    assertFalse(
+    assertTrue(
         com.incode.verification.domain.policy.FallbackPolicy.shouldFallback(
             new ProviderLookupResult.Failure(new ProviderFailure.Timeout())));
   }

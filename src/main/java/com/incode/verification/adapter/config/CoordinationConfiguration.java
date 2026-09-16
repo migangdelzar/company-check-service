@@ -2,6 +2,7 @@ package com.incode.verification.adapter.config;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Expiry;
 import com.incode.verification.adapter.out.coordination.RedisCoordinationAdapter;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.VerificationView;
@@ -14,7 +15,28 @@ import org.springframework.context.annotation.Configuration;
 public class CoordinationConfiguration {
   @Bean
   Cache<String, VerificationView> verificationL1Cache(CoordinationProperties p) {
-    return Caffeine.newBuilder().maximumSize(p.l1MaximumSize()).build();
+    return Caffeine.newBuilder()
+        .maximumSize(p.l1MaximumSize())
+        .expireAfter(
+            new Expiry<String, VerificationView>() {
+              @Override
+              public long expireAfterCreate(String key, VerificationView value, long now) {
+                return p.ttlFor(value).toNanos();
+              }
+
+              @Override
+              public long expireAfterUpdate(
+                  String key, VerificationView value, long now, long currentDuration) {
+                return currentDuration;
+              }
+
+              @Override
+              public long expireAfterRead(
+                  String key, VerificationView value, long now, long currentDuration) {
+                return currentDuration;
+              }
+            })
+        .build();
   }
 
   @Bean

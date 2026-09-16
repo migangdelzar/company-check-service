@@ -10,8 +10,8 @@ import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationLifecycle;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
-import com.incode.verification.application.service.VerificationApplicationService;
 import com.incode.verification.application.service.ProviderSubmissionException;
+import com.incode.verification.application.service.VerificationApplicationService;
 import com.incode.verification.domain.aggregate.Verification;
 import com.incode.verification.domain.type.ProviderFailure;
 import com.incode.verification.domain.type.ProviderLookupResult;
@@ -20,6 +20,7 @@ import com.incode.verification.domain.valueobject.LookupKey;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -40,7 +41,9 @@ class VerificationApplicationServiceTest {
         (ProviderLookupPort)
             (q, c) ->
                 new ProviderLookupResult.Success(
-                    List.of(new com.incode.verification.domain.entity.Company("A", "x", true)));
+                    List.of(
+                        new com.incode.verification.domain.entity.Company(
+                            "A", "A", LocalDate.parse("2020-01-01"), "x", true)));
     var service =
         new VerificationApplicationService(
             repository,
@@ -52,10 +55,7 @@ class VerificationApplicationServiceTest {
             Duration.ofMinutes(1));
     VerificationView view =
         ScopedValue.where(ExecutionContext.CURRENT, new ExecutionContext(UUID.randomUUID()))
-            .call(
-                () ->
-                    service.start(
-                        new StartVerificationCommand(UUID.randomUUID(), " acme ")));
+            .call(() -> service.start(new StartVerificationCommand(UUID.randomUUID(), " acme ")));
     assertEquals(VerificationStatus.COMPLETED, view.status());
     assertThrows(
         UnsupportedOperationException.class, () -> view.otherResults().add(view.company()));
@@ -100,14 +100,17 @@ class VerificationApplicationServiceTest {
   private static final class MemoryRepository implements VerificationRepository {
     private final Map<UUID, Verification> values = new HashMap<>();
 
+    @Override
     public void insertInProgress(Verification v) {
       values.put(v.id(), v);
     }
 
+    @Override
     public void update(Verification v) {
       values.put(v.id(), v);
     }
 
+    @Override
     public Optional<Verification> findById(UUID id) {
       return Optional.ofNullable(values.get(id));
     }
@@ -132,11 +135,13 @@ class VerificationApplicationServiceTest {
       this.repository = repository;
     }
 
+    @Override
     public void start(Verification v) {
       calls.add("start");
       repository.insertInProgress(v);
     }
 
+    @Override
     public void transition(
         Verification v, java.util.function.Consumer<VerificationRepository> write) {
       calls.add("transition");
@@ -145,20 +150,25 @@ class VerificationApplicationServiceTest {
   }
 
   private static final class NoopCoordination implements CoordinationPort {
+    @Override
     public Lease acquire(LookupKey key) {
       return new Lease() {
+        @Override
         public boolean acquired() {
           return true;
         }
 
+        @Override
         public void close() {}
       };
     }
 
+    @Override
     public Optional<VerificationView> cached(LookupKey key) {
       return Optional.empty();
     }
 
+    @Override
     public void cache(LookupKey key, VerificationView view) {}
   }
 }

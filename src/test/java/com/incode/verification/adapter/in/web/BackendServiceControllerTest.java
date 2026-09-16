@@ -28,7 +28,7 @@ class BackendServiceControllerTest {
           .build();
 
   @Test
-  void lookupReturnsPdfCompatibleRepresentationAndNoCache() throws Exception {
+  void lookupReturnsPdfCompatibleRepresentationAndNoStore() throws Exception {
     var id = UUID.randomUUID();
     when(starter.start(any())).thenReturn(view(id));
 
@@ -38,7 +38,7 @@ class BackendServiceControllerTest {
                 .param("verificationId", id.toString())
                 .param("query", "Acme"))
         .andExpect(status().isOk())
-        .andExpect(header().string("Cache-Control", "no-cache"))
+        .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.verificationId").value(id.toString()))
         .andExpect(jsonPath("$.query").value("Acme"));
   }

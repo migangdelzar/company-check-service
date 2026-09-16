@@ -7,7 +7,7 @@ public record NormalizedQuery(String value) {
   public NormalizedQuery(String value) {
     String requiredValue = Objects.requireNonNull(value, "value");
     if (requiredValue.isEmpty() || requiredValue.length() > 128) {
-      throw new IllegalArgumentException("query must contain between 1 and 128 characters");
+      throw new InvalidQueryException("query must contain between 1 and 128 characters");
     }
     this.value = requiredValue;
   }

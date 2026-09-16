@@ -10,10 +10,13 @@ import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 public final class RedisCoordinationAdapter implements CoordinationPort {
+  private static final Logger log = LoggerFactory.getLogger(RedisCoordinationAdapter.class);
   private static final String RELEASE =
       "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end";
   private static final String TAKEOVER =
@@ -44,7 +47,8 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
       VerificationView view = mapper.readValue(json, VerificationView.class);
       l1.put(k, view);
       return Optional.of(view);
-    } catch (Exception ignored) {
+    } catch (Exception exception) {
+      log.debug("Redis cache read unavailable; treating cache as a miss", exception);
       return Optional.empty();
     }
   }
@@ -54,9 +58,10 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
     String k = cacheKey(key);
     l1.put(k, view);
     try {
-      long millis = ttlMillis();
+      long millis = ttlMillis(view);
       redis.opsForValue().set(k, mapper.writeValueAsString(view), Duration.ofMillis(millis));
-    } catch (Exception ignored) {
+    } catch (Exception exception) {
+      log.debug("Redis cache write unavailable; continuing with local cache", exception);
     }
   }
 
@@ -78,13 +83,14 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
               token,
               String.valueOf(properties.leaseTtl().toMillis()));
       return new RedisLease(leaseKey, token, "OK".equals(takeover), false);
-    } catch (Exception ignored) {
+    } catch (Exception exception) {
+      log.debug("Redis coordination unavailable; using fail-open lookup ownership", exception);
       return new RedisLease(leaseKey, token, true, true);
     }
   }
 
-  private long ttlMillis() {
-    return properties.ttl().toMillis()
+  private long ttlMillis(VerificationView view) {
+    return properties.ttlFor(view).toMillis()
         + ThreadLocalRandom.current().nextLong(properties.jitter().toMillis() + 1);
   }
 
@@ -103,20 +109,24 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
       this.failOpen = failOpen;
     }
 
+    @Override
     public boolean acquired() {
       return acquired;
     }
 
+    @Override
     public boolean failOpen() {
       return failOpen;
     }
 
+    @Override
     public void close() {
       if (!failOpen)
         try {
           redis.execute(
               new DefaultRedisScript<>(RELEASE, Long.class), java.util.List.of(key), token);
-        } catch (Exception ignored) {
+        } catch (Exception exception) {
+          log.debug("Redis lease release unavailable", exception);
         }
     }
   }

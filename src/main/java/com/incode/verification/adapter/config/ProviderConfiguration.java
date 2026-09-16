@@ -1,7 +1,8 @@
 package com.incode.verification.adapter.config;
 
+import com.incode.verification.adapter.out.provider.ProviderContractException;
 import com.incode.verification.adapter.out.provider.ProviderProperties;
-import com.incode.verification.adapter.out.provider.ProviderResolver;
+import com.incode.verification.adapter.out.provider.ProviderTransientException;
 import com.incode.verification.adapter.out.provider.RestClientProviderAdapter;
 import com.incode.verification.application.context.ExecutionContext;
 import com.incode.verification.application.port.out.ProviderLookupPort;
@@ -21,7 +22,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
@@ -41,23 +41,15 @@ public class ProviderConfiguration {
   @Bean
   ProviderLookupPort freeProvider(
       @Qualifier("freeProviderClient") RestClient c, ProviderProperties p) {
-    return resilient(
+    return new FreeResilientProviderAdapter(
         new RestClientProviderAdapter(c, ProviderType.FREE, p.free(), p.attemptTimeout()));
   }
 
   @Bean
   ProviderLookupPort premiumProvider(
       @Qualifier("premiumProviderClient") RestClient c, ProviderProperties p) {
-    return resilient(
+    return new PremiumResilientProviderAdapter(
         new RestClientProviderAdapter(c, ProviderType.PREMIUM, p.premium(), p.attemptTimeout()));
-  }
-
-  @Bean
-  @Primary
-  ProviderLookupPort providerResolver(
-      @Qualifier("freeProvider") ProviderLookupPort free,
-      @Qualifier("premiumProvider") ProviderLookupPort premium) {
-    return new ProviderResolver(free, premium);
   }
 
   private RestClient client(ProviderProperties.Endpoint e, Duration timeout) {
@@ -80,24 +72,63 @@ public class ProviderConfiguration {
         .build();
   }
 
-  private ProviderLookupPort resilient(ProviderLookupPort delegate) {
-    return new ResilientProviderAdapter(delegate);
-  }
-
-  static final class ResilientProviderAdapter implements ProviderLookupPort {
+  static final class FreeResilientProviderAdapter implements ProviderLookupPort {
     private final ProviderLookupPort delegate;
 
-    ResilientProviderAdapter(ProviderLookupPort d) {
+    FreeResilientProviderAdapter(ProviderLookupPort d) {
       delegate = d;
     }
 
-    @Retry(name = "provider")
-    @CircuitBreaker(name = "provider")
-    @RateLimiter(name = "provider")
-    @Bulkhead(name = "provider", type = Bulkhead.Type.SEMAPHORE)
+    @Override
+    @Retry(name = "freeProvider", fallbackMethod = "fallback")
+    @CircuitBreaker(name = "freeProvider", fallbackMethod = "fallback")
+    @RateLimiter(name = "freeProvider")
+    @Bulkhead(name = "freeProvider", type = Bulkhead.Type.SEMAPHORE)
     public ProviderLookupResult lookup(
         com.incode.verification.domain.valueobject.NormalizedQuery q, ExecutionContext c) {
       return delegate.lookup(q, c);
     }
+
+    public ProviderLookupResult fallback(
+        com.incode.verification.domain.valueobject.NormalizedQuery q,
+        ExecutionContext c,
+        Throwable failure) {
+      return failureResult(failure);
+    }
+  }
+
+  static final class PremiumResilientProviderAdapter implements ProviderLookupPort {
+    private final ProviderLookupPort delegate;
+
+    PremiumResilientProviderAdapter(ProviderLookupPort d) {
+      delegate = d;
+    }
+
+    @Override
+    @Retry(name = "premiumProvider", fallbackMethod = "fallback")
+    @CircuitBreaker(name = "premiumProvider", fallbackMethod = "fallback")
+    @RateLimiter(name = "premiumProvider")
+    @Bulkhead(name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE)
+    public ProviderLookupResult lookup(
+        com.incode.verification.domain.valueobject.NormalizedQuery q, ExecutionContext c) {
+      return delegate.lookup(q, c);
+    }
+
+    public ProviderLookupResult fallback(
+        com.incode.verification.domain.valueobject.NormalizedQuery q,
+        ExecutionContext c,
+        Throwable failure) {
+      return failureResult(failure);
+    }
+  }
+
+  private static ProviderLookupResult failureResult(Throwable failure) {
+    if (failure instanceof ProviderTransientException transientFailure)
+      return new ProviderLookupResult.Failure(transientFailure.failure());
+    if (failure instanceof ProviderContractException)
+      return new ProviderLookupResult.Failure(
+          new com.incode.verification.domain.type.ProviderFailure.Malformed());
+    return new ProviderLookupResult.Failure(
+        new com.incode.verification.domain.type.ProviderFailure.Unavailable());
   }
 }
