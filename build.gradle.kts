@@ -40,6 +40,9 @@ val openApiContracts = fileTree(layout.projectDirectory.dir("openapi")) {
 val jacocoArtifactDirectory = layout.buildDirectory.dir("reports/jacoco")
 val performanceArtifactDirectory = layout.buildDirectory.dir("reports/performance")
 dependencyLocking { lockAllConfigurations() }
+jacoco {
+    reportsDirectory.set(jacocoArtifactDirectory)
+}
 tasks.test { useJUnitPlatform() }
 checkstyle { toolVersion = libs.versions.checkstyle.get() }
 spotless { kotlinGradle { ktlint() } }
@@ -56,7 +59,6 @@ tasks.named<JacocoReport>("jacocoTestReport") {
         html.required.set(true)
         csv.required.set(false)
     }
-    reportsDirectory.set(jacocoArtifactDirectory)
 }
 
 tasks.withType<JacocoCoverageVerification>().configureEach {
@@ -98,9 +100,9 @@ val openApiValidate = tasks.register("openApiValidate") {
     doLast {
         val reportDirectory = layout.buildDirectory.dir("reports/openapi").get().asFile
         reportDirectory.mkdirs()
-        exec {
+        providers.exec {
             commandLine("npx", "--yes", "@redocly/cli@1.34.0", "lint", *openApiContracts.files.map { it.path }.toTypedArray())
-        }
+        }.result.get().rethrowFailure()
     }
 }
 
