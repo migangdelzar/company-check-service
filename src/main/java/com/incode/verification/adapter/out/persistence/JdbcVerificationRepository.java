@@ -81,9 +81,9 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   public int expireBatch(Instant now, int limit) {
     return jdbc.sql(
             "WITH candidates AS (SELECT id FROM verifications WHERE status='IN_PROGRESS' "
-                + "AND expires_at<=:now AND claim_token IS NULL ORDER BY expires_at "
+                + "AND expires_at<=:now ORDER BY expires_at "
                 + "FOR UPDATE SKIP LOCKED LIMIT :limit) UPDATE verifications v SET status='FAILED',"
-                + "state=CAST(:state AS jsonb),updated_at=CURRENT_TIMESTAMP FROM candidates c "
+                + "state=CAST(:state AS jsonb),claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP FROM candidates c "
                 + "WHERE v.id=c.id")
         .param("now", now)
         .param("limit", limit)
@@ -101,6 +101,17 @@ public final class JdbcVerificationRepository implements VerificationRepository 
             "SELECT id,raw_query,normalized_query,started_at,expires_at,state "
                 + "FROM verifications WHERE id=:id")
         .param("id", id)
+        .query(this::map)
+        .optional();
+  }
+
+  @Override
+  public Optional<Verification> findTerminalByQuery(NormalizedQuery query) {
+    return jdbc.sql(
+            "SELECT id,raw_query,normalized_query,started_at,expires_at,state "
+                + "FROM verifications WHERE normalized_query=:normalized "
+                + "AND status IN ('COMPLETED','FAILED') ORDER BY updated_at DESC LIMIT 1")
+        .param("normalized", query.value())
         .query(this::map)
         .optional();
   }

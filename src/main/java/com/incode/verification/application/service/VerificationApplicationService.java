@@ -72,11 +72,17 @@ public final class VerificationApplicationService
     try (var lease = coordination.acquire(key)) {
       if (!lease.acquired()) {
         var cached = coordination.cached(key);
-        if (cached.isPresent()) return completeFromCached(verification, cached.orElseThrow(), key);
+        if (cached.isPresent())
+          return completeFromCached(verification, cached.orElseThrow(), key, true);
+        var shared = repository.findTerminalByQuery(normalized);
+        if (shared.isPresent()) return completeFromShared(verification, shared.orElseThrow(), key);
         return view(verification);
       }
       var cached = coordination.cached(key);
-      if (cached.isPresent()) return completeFromCached(verification, cached.orElseThrow(), key);
+      if (cached.isPresent())
+        return completeFromCached(verification, cached.orElseThrow(), key, true);
+      var shared = repository.findTerminalByQuery(normalized);
+      if (shared.isPresent()) return completeFromShared(verification, shared.orElseThrow(), key);
       var context = new ExecutionContext(UUID.randomUUID());
       var result = lookup(primaryProvider, normalized, context);
       if (FallbackPolicy.shouldFallback(result))
@@ -100,9 +106,20 @@ public final class VerificationApplicationService
   public VerificationView get(UUID verificationId) {
     return repository
         .findById(verificationId)
-        .map(this::view)
+        .map(this::pollSharedTerminal)
         .orElseThrow(
             () -> new IllegalArgumentException("verification not found: " + verificationId));
+  }
+
+  private VerificationView pollSharedTerminal(Verification verification) {
+    if (!(verification.state() instanceof VerificationState.InProgress)) return view(verification);
+    var key = new LookupKey(verification.query());
+    var cached = coordination.cached(key);
+    if (cached.isPresent()) return completeFromCached(verification, cached.orElseThrow(), key, false);
+    var shared = repository.findTerminalByQuery(verification.query());
+    return shared
+        .map(value -> completeFromShared(verification, value, key))
+        .orElseGet(() -> view(verification));
   }
 
   private VerificationView view(Verification v) {
@@ -169,7 +186,15 @@ public final class VerificationApplicationService
   }
 
   private VerificationView completeFromCached(
-      Verification verification, VerificationView cached, LookupKey key) {
+      Verification verification, VerificationView cached, LookupKey key, boolean raiseFailure) {
+    if (cached.status() == VerificationStatus.FAILED) {
+      var failed = verification.fail(cached.failure(), Instant.now(clock));
+      persistTerminal(failed);
+      coordination.cache(key, view(failed));
+      if (raiseFailure)
+        throw new ProviderSubmissionException(cached.failure(), "provider resolution failed");
+      return view(failed);
+    }
     var companies =
         java.util.stream.Stream.concat(
                 java.util.stream.Stream.ofNullable(cached.company()),
@@ -182,6 +207,29 @@ public final class VerificationApplicationService
             Instant.now(clock));
     persistTerminal(completed);
     var result = view(completed);
+    coordination.cache(key, result);
+    return result;
+  }
+
+  private VerificationView completeFromShared(
+      Verification verification, Verification shared, LookupKey key) {
+    var hydrated =
+        switch (shared.state()) {
+          case VerificationState.InProgress ignored -> verification;
+          case VerificationState.Completed completed ->
+              verification.complete(
+                  new ProviderLookupResult.Success(
+                      java.util.stream.Stream.concat(
+                              java.util.stream.Stream.ofNullable(completed.company()),
+                              completed.otherResults().stream())
+                          .toList(),
+                      completed.provider()),
+                  Instant.now(clock));
+          case VerificationState.Failed failed ->
+              verification.fail(failed.failure(), Instant.now(clock));
+        };
+    persistTerminal(hydrated);
+    var result = view(hydrated);
     coordination.cache(key, result);
     return result;
   }

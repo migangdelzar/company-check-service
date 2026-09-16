@@ -13,6 +13,11 @@ public interface VerificationRepository {
 
   Optional<Verification> findById(UUID id);
 
+  default Optional<Verification> findTerminalByQuery(
+      com.incode.verification.domain.valueobject.NormalizedQuery query) {
+    return Optional.empty();
+  }
+
   default UUID claim(UUID id) {
     throw new UnsupportedOperationException("claiming is adapter-specific");
   }
