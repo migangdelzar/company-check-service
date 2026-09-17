@@ -1,14 +1,13 @@
 package com.incode.verification.adapter.out.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.incode.verification.application.context.ExecutionContext;
 import com.incode.verification.application.port.out.ProviderLookupPort;
-import com.incode.verification.domain.type.ProviderFailure;
-import com.incode.verification.domain.type.ProviderLookupResult;
-import com.incode.verification.domain.type.ProviderType;
-import com.incode.verification.domain.valueobject.NormalizedQuery;
+import com.incode.verification.domain.provider.ProviderFailure;
+import com.incode.verification.domain.provider.ProviderResult;
+import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.domain.query.NormalizedQuery;
 import java.net.SocketTimeoutException;
-import org.springframework.http.HttpStatusCode;
+import org.jspecify.annotations.Nullable;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
@@ -16,62 +15,67 @@ import org.springframework.web.client.RestClientResponseException;
 public final class RestClientProviderAdapter implements ProviderLookupPort {
   private final RestClient client;
   private final ProviderType type;
-  private final ProviderProperties.Endpoint endpoint;
+  private final ProviderEndpointProperties endpoint;
 
   public RestClientProviderAdapter(
-      RestClient client, ProviderType type, ProviderProperties.Endpoint endpoint) {
+      RestClient client, ProviderType type, ProviderEndpointProperties endpoint) {
     this.client = client;
     this.type = type;
     this.endpoint = endpoint;
   }
 
   @Override
-  public ProviderLookupResult lookup(NormalizedQuery query, ExecutionContext context) {
+  public ProviderResult lookup(NormalizedQuery query) {
     try {
-      JsonNode body =
+      @Nullable JsonNode body =
           client
               .get()
               .uri(endpoint.path(), query.value())
               .header("X-Api-Key", endpoint.apiKey())
               .retrieve()
-              .onStatus(
-                  HttpStatusCode::is4xxClientError,
-                  (request, response) -> {
-                    throw new ProviderException(
-                        new ProviderFailure.ClientError(response.getStatusCode().value()));
-                  })
               .body(JsonNode.class);
-      var companies = ProviderResponseMapper.companies(body, type);
-      return new ProviderLookupResult.Success(companies, type);
-    } catch (ProviderException e) {
-      return new ProviderLookupResult.Failure(e.failure);
-    } catch (RestClientResponseException e) {
-      if (e.getStatusCode().is4xxClientError())
-        return new ProviderLookupResult.Failure(
-            new ProviderFailure.ClientError(e.getStatusCode().value()));
-      throw new ProviderTransientException(new ProviderFailure.Unavailable(), e);
-    } catch (IllegalArgumentException e) {
-      throw new ProviderContractException(e);
-    } catch (ResourceAccessException e) {
-      if (hasCause(e, SocketTimeoutException.class))
-        throw new ProviderTransientException(new ProviderFailure.Timeout(), e);
-      throw new ProviderTransientException(new ProviderFailure.Unavailable(), e);
+      var companies = ProviderResponseMapper.mapCompanies(body, type);
+      return new ProviderResult.Success(companies, type);
     } catch (Exception e) {
-      throw new ProviderTransientException(new ProviderFailure.Unavailable(), e);
+      return handle(e);
     }
+  }
+
+  private static ProviderResult handle(Exception failure) {
+    if (failure instanceof RestClientResponseException response) {
+      return response(response);
+    }
+    if (failure instanceof IllegalArgumentException) {
+      throw new ProviderContractException(failure);
+    }
+    if (failure instanceof ResourceAccessException access) {
+      throw transientFailure(access);
+    }
+    throw transientFailure(failure);
+  }
+
+  private static ProviderResult response(RestClientResponseException failure) {
+    if (failure.getStatusCode().is4xxClientError()) {
+      return new ProviderResult.Failure(
+          new ProviderFailure.ClientError(failure.getStatusCode().value()));
+    }
+    throw transientFailure(failure);
+  }
+
+  private static ProviderTransientException transientFailure(Exception failure) {
+    if (hasCause(failure, SocketTimeoutException.class)) {
+      return new ProviderTransientException(new ProviderFailure.Timeout(), failure);
+    }
+    return new ProviderTransientException(new ProviderFailure.Unavailable(), failure);
   }
 
   private static boolean hasCause(Throwable error, Class<? extends Throwable> type) {
-    for (Throwable current = error; current != null; current = current.getCause())
-      if (type.isInstance(current)) return true;
+    for (Throwable current = error; current != null; current = current.getCause()) {
+      if (type.isInstance(current)) {
+        return true;
+      }
+    }
     return false;
   }
 
-  private static final class ProviderException extends RuntimeException {
-    final ProviderFailure failure;
-
-    ProviderException(ProviderFailure f) {
-      failure = f;
-    }
-  }
 }

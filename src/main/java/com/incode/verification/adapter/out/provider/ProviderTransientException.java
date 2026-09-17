@@ -1,11 +1,12 @@
 package com.incode.verification.adapter.out.provider;
 
-import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.provider.ProviderFailure;
+import org.jspecify.annotations.Nullable;
 
 public final class ProviderTransientException extends RuntimeException {
   private final ProviderFailure failure;
 
-  ProviderTransientException(ProviderFailure failure, Throwable cause) {
+  ProviderTransientException(ProviderFailure failure, @Nullable Throwable cause) {
     super(cause);
     this.failure = failure;
   }

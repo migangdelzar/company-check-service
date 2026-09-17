@@ -1,49 +1,58 @@
 package com.incode.verification.adapter.out.provider;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-import java.net.URI;
+import jakarta.validation.constraints.Positive;
 import java.time.Duration;
+import org.hibernate.validator.constraints.time.DurationMin;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.bind.ConstructorBinding;
+import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.validation.annotation.Validated;
 
 @ConfigurationProperties("verification.providers")
 @Validated
 public record ProviderProperties(
-    @NotNull @Valid Endpoint free,
-    @NotNull @Valid Endpoint premium,
-    @NotNull Duration attemptTimeout) {
-  public ProviderProperties {
-    attemptTimeout = attemptTimeout == null ? Duration.ofMillis(500) : attemptTimeout;
+    @NotNull @Valid ProviderEndpointProperties free,
+    @NotNull @Valid ProviderEndpointProperties premium,
+    @NotNull @DurationMin(inclusive = false) @DefaultValue("500ms") Duration attemptTimeout,
+    @NotNull @Valid @DefaultValue HttpPoolProperties pool) {
+  @ConstructorBinding
+  public ProviderProperties(
+      ProviderEndpointProperties free,
+      ProviderEndpointProperties premium,
+      Duration attemptTimeout,
+      HttpPoolProperties pool) {
+    this.free = free;
+    this.premium = premium;
+    this.attemptTimeout = attemptTimeout;
+    this.pool = pool == null ? new HttpPoolProperties(100, 50) : pool;
   }
 
-  public record Endpoint(
-      @NotBlank @Pattern(regexp = "https?://[^\\s]+", message = "must be an HTTP(S) URL")
-          String baseUrl,
-      @NotBlank @Pattern(regexp = "/[^\\s]*", message = "must be an absolute path template")
-          String path,
-      @Size(max = 512) String apiKey) {
-    @AssertTrue(message = "baseUrl must contain only an HTTP(S) scheme and host")
-    public boolean hasSafeBaseUrl() {
-      if (baseUrl == null) return false;
-      try {
-        URI uri = URI.create(baseUrl);
-        return uri.getHost() != null
-            && uri.getUserInfo() == null
-            && uri.getQuery() == null
-            && uri.getFragment() == null;
-      } catch (IllegalArgumentException exception) {
-        return false;
-      }
+  public ProviderProperties(
+      ProviderEndpointProperties free,
+      ProviderEndpointProperties premium,
+      Duration attemptTimeout) {
+    this(free, premium, attemptTimeout, new HttpPoolProperties(100, 50));
+  }
+
+  public record HttpPoolProperties(
+      @Positive @DefaultValue("100") int maxConnectionsTotal,
+      @Positive @DefaultValue("50") int maxConnectionsPerRoute,
+      @NotNull @DurationMin(inclusive = false) @DefaultValue("100ms") Duration connectionRequestTimeout,
+      @NotNull @DurationMin(inclusive = false) @DefaultValue("150ms") Duration connectTimeout,
+      @NotNull @DurationMin(inclusive = false) @DefaultValue("400ms") Duration responseTimeout,
+      @NotNull @DurationMin(inclusive = false) @DefaultValue("5s") Duration validateAfterInactivity,
+      @NotNull @DurationMin(inclusive = false) @DefaultValue("30s") Duration evictIdleAfter) {
+    public HttpPoolProperties(int maxConnectionsTotal, int maxConnectionsPerRoute) {
+      this(
+          maxConnectionsTotal,
+          maxConnectionsPerRoute,
+          Duration.ofMillis(100),
+          Duration.ofMillis(150),
+          Duration.ofMillis(400),
+          Duration.ofSeconds(5),
+          Duration.ofSeconds(30));
     }
-  }
-
-  @AssertTrue(message = "attemptTimeout must be positive")
-  public boolean hasPositiveAttemptTimeout() {
-    return attemptTimeout != null && !attemptTimeout.isZero() && !attemptTimeout.isNegative();
   }
 }

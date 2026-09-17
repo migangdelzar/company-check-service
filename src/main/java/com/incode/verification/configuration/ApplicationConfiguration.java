@@ -1,15 +1,19 @@
-package com.incode.verification.adapter.config;
+package com.incode.verification.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration(proxyBeanMethods = false)
-@EnableScheduling
 public class ApplicationConfiguration {
   @Bean
   Clock applicationClock() {
     return Clock.systemUTC();
+  }
+
+  @Bean
+  ObjectMapper objectMapper() {
+    return new ObjectMapper().findAndRegisterModules();
   }
 }

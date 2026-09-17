@@ -1,19 +1,27 @@
 package com.incode.verification.adapter.out.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.ProviderType;
+import com.incode.verification.domain.company.Company;
+import com.incode.verification.domain.provider.ProviderType;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 
 final class ProviderResponseMapper {
   private ProviderResponseMapper() {}
 
-  static List<Company> companies(JsonNode root, ProviderType type) {
+  static List<Company> mapCompanies(@Nullable JsonNode root, ProviderType type) {
+    if (root == null) {
+      throw new IllegalArgumentException("provider payload is empty");
+    }
     JsonNode values = root.isArray() ? root : root.path("results");
-    if (!values.isArray()) values = root.path("companies");
-    if (!values.isArray()) throw new IllegalArgumentException("provider payload is not an array");
+    if (!values.isArray()) {
+      values = root.path("companies");
+    }
+    if (!values.isArray()) {
+      throw new IllegalArgumentException("provider payload is not an array");
+    }
     List<Company> result = new ArrayList<>();
     for (JsonNode item : values) {
       String cin =
@@ -30,8 +38,9 @@ final class ProviderResponseMapper {
           || name == null
           || registrationDate == null
           || address == null
-          || !item.path(activeField).isBoolean())
+          || !item.path(activeField).isBoolean()) {
         throw new IllegalArgumentException("provider company is malformed");
+      }
       try {
         result.add(
             new Company(
@@ -47,8 +56,12 @@ final class ProviderResponseMapper {
     return result;
   }
 
-  private static String text(JsonNode n, String... names) {
-    for (String name : names) if (n.hasNonNull(name)) return n.path(name).asText();
+  private static @Nullable String text(JsonNode node, String... names) {
+    for (String name : names) {
+      if (node.hasNonNull(name)) {
+        return node.path(name).asText();
+      }
+    }
     return null;
   }
 }

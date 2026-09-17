@@ -3,8 +3,7 @@ package com.incode.verification.configuration;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.incode.verification.adapter.config.ApplicationConfiguration;
-import com.incode.verification.adapter.out.expiration.VerificationExpirationScheduler;
+import com.incode.verification.adapter.in.scheduling.VerificationExpirationScheduler;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
