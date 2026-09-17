@@ -40,6 +40,12 @@ Modify:
 - `src/main/resources/application-single-node.yml` — `backendService` Resilience4j instance.
 - `src/test/java/com/incode/verification/configuration/RuntimeProfileConfigurationTest.java` — profile wiring assertions.
 - `src/test/java/com/incode/verification/adapter/in/web/BackendServiceControllerTest.java` — rejected requests do not reach the use case.
+- `src/main/java/com/incode/verification/adapter/out/provider/ProviderProperties.java` — validated provider HTTP pool settings.
+- `src/main/java/com/incode/verification/configuration/ProviderHttpConfiguration.java` — consume configured pool values.
+- `src/main/resources/application.yml` — Hikari and provider pool settings.
+- `src/main/resources/application-distributed.yml` — Redis Lettuce pool settings.
+- `gradle/libs.versions.toml` and `build.gradle.kts` — Commons Pool 2 dependency for Lettuce pooling.
+- `src/test/java/com/incode/verification/adapter/out/provider/ProviderPropertiesTest.java` — pool validation coverage.
 
 ## Task 1: Define the inbound limiter port and decision model
 
@@ -116,9 +122,9 @@ final class InboundRateLimitFilter extends OncePerRequestFilter {
 **Behavior:**
 
 - Expose a Spring bean implementing `InboundRateLimiter`.
-- Call a Spring-proxied method annotated with `@RateLimiter(name = "backendService", fallbackMethod = "reject")`.
-- Return `ALLOWED` from the normal method.
-- Convert `RequestNotPermitted` through the fallback method to `REJECTED` with the configured refresh duration.
+- Receive the Resilience4j `RateLimiterRegistry`-managed `RateLimiter` for the `backendService` instance.
+- Call `acquirePermission()` without waiting; return `ALLOWED` when it succeeds.
+- Return `REJECTED` with the configured refresh duration when `acquirePermission()` returns false.
 - Configure `backendService` with `limit-for-period`, `limit-refresh-period`, and `timeout-duration: 0`; it must never wait for a permit.
 
 - [ ] **Step 1: Write the failing adapter/configuration tests** for permit acceptance, immediate rejection after the limit, and zero wait duration.
@@ -190,7 +196,7 @@ public class InboundRateLimitConfiguration {
 - [ ] **Step 3: Implement** the configuration class and property binding.
 - [ ] **Step 4: Run the profile tests** and confirm green.
 - [ ] **Step 5: Run `./gradlew fastCheck`** and fix only feature-related failures.
-- [ ] **Step 6: Commit:** `git add src/main/java/com/incode/verification/configuration/InboundRateLimitConfiguration.java src/test/java/com/incode/verification/configuration/RuntimeProfileConfigurationTest.java src/main/resources/application-distributed.yml && git commit -m "feat(rate-limit): wire inbound limiter profiles"`.
+- [ ] **Step 6: Commit:** `git add src/main/java/com/incode/verification/configuration/InboundRateLimitConfiguration.java src/test/java/com/incode/verification/configuration/RuntimeProfileConfigurationTest.java && git commit -m "feat(rate-limit): wire inbound limiter profiles"`.
 
 ## Task 6: Verify end-to-end behavior and preserve resource controls
 
@@ -204,6 +210,35 @@ public class InboundRateLimitConfiguration {
 - [ ] **Step 4: Run `./gradlew qualityGate` when PostgreSQL/Redis/provider test dependencies are available; otherwise report the exact blocked task and output.
 - [ ] **Step 5: Inspect the final diff** to verify no provider resilience or connection-pool settings changed.
 - [ ] **Step 6: Do not create a separate commit; the focused tests and configuration changes are committed with their owning tasks.
+
+## Task 7: Make connection-pool configuration explicit
+
+**Files:**
+
+- Modify: `gradle/libs.versions.toml`
+- Modify: `build.gradle.kts`
+- Modify: `src/main/java/com/incode/verification/adapter/out/provider/ProviderProperties.java`
+- Modify: `src/main/java/com/incode/verification/configuration/ProviderHttpConfiguration.java`
+- Modify: `src/main/resources/application.yml`
+- Modify: `src/main/resources/application-distributed.yml`
+- Modify: `src/test/java/com/incode/verification/adapter/out/provider/ProviderPropertiesTest.java`
+
+**Behavior:**
+
+- Keep `spring.datasource.hikari.*` as the JDBC pool configuration consumed by the `DataSource` passed into `JdbcClient`; do not create a second JDBC pool.
+- Add a validated provider pool record with `max-total` and `max-per-route`, preserving defaults of 100 and 100 for existing behavior.
+- Replace the hard-coded Apache pool values with the validated provider pool properties.
+- Add `org.apache.commons:commons-pool2` through the version catalog.
+- In `application-distributed.yml`, enable one shared Lettuce pool with explicit `max-active`, `max-idle`, `min-idle`, and `max-wait` values. Single-node must continue excluding Redis auto-configuration.
+- Do not add an MVC interceptor for pool management; pool ownership remains in the DataSource, Lettuce factory, and provider HTTP client configuration.
+
+- [ ] **Step 1: Write failing property tests** for invalid zero/negative provider pool sizes and valid pool settings.
+- [ ] **Step 2: Run:** `./gradlew test --tests '*ProviderPropertiesTest'`; expect red tests for the new record/validation.
+- [ ] **Step 3: Implement** the nested provider pool properties, YAML bindings, and Apache pool wiring.
+- [ ] **Step 4: Add the Commons Pool 2 dependency and distributed Lettuce pool properties.**
+- [ ] **Step 5: Run the focused property and configuration tests** and confirm green.
+- [ ] **Step 6: Run `./gradlew fastCheck`** and verify the existing `JdbcClient`/Hikari wiring remains unchanged.
+- [ ] **Step 7: Commit:** `git add gradle/libs.versions.toml build.gradle.kts src/main/java/com/incode/verification/adapter/out/provider/ProviderProperties.java src/main/java/com/incode/verification/configuration/ProviderHttpConfiguration.java src/main/resources/application.yml src/main/resources/application-distributed.yml src/test/java/com/incode/verification/adapter/out/provider/ProviderPropertiesTest.java && git commit -m "feat(config): configure connection pools"`.
 
 ## Definition of Done
 

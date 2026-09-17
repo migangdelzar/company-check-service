@@ -24,7 +24,7 @@ public final class InboundRateLimitFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    return !("POST".equals(request.getMethod())
+    return !("GET".equals(request.getMethod())
         && BACKEND_SERVICE_PATH.equals(request.getRequestURI()));
   }
 

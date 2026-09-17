@@ -17,7 +17,7 @@ class InboundRateLimitFilterTest {
   void allowsBackendServiceRequestWhenLimiterAllows() throws Exception {
     var limiter = new FakeInboundRateLimiter(allowed());
     var filter = new InboundRateLimitFilter(limiter);
-    var request = request("POST", "/backend-service");
+    var request = request("GET", "/backend-service");
     var response = new MockHttpServletResponse();
     var chain = new TrackingFilterChain();
 
@@ -31,7 +31,7 @@ class InboundRateLimitFilterTest {
   void rejectsBackendServiceRequestWhenLimiterRejects() throws Exception {
     var limiter = new FakeInboundRateLimiter(rejected(Duration.ofSeconds(2)));
     var filter = new InboundRateLimitFilter(limiter);
-    var request = request("POST", "/backend-service");
+    var request = request("GET", "/backend-service");
     var response = new MockHttpServletResponse();
     var chain = new TrackingFilterChain();
 
@@ -46,7 +46,7 @@ class InboundRateLimitFilterTest {
   void returnsServiceUnavailableWhenLimiterIsUnavailable() throws Exception {
     var limiter = new FakeInboundRateLimiter(unavailable(Duration.ofSeconds(1)));
     var filter = new InboundRateLimitFilter(limiter);
-    var request = request("POST", "/backend-service");
+    var request = request("GET", "/backend-service");
     var response = new MockHttpServletResponse();
     var chain = new TrackingFilterChain();
 

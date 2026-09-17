@@ -1,0 +1,12 @@
+spring:
+  data:
+    redis:
+      timeout: 250ms
+      connect-timeout: 100ms
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 32
+          max-idle: 16
+          min-idle: 4
+          max-wait: 100ms

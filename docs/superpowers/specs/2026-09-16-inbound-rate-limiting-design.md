@@ -48,6 +48,30 @@ the protection guarantee.
 The inbound limiter is separate from `ProviderRateLimiter`: inbound traffic
 and provider calls have different limits, keys, failure policies, and owners.
 
+## Connection and resource pools
+
+`JdbcClient` does not own a pool. `PersistenceConfiguration` creates it with
+the auto-configured `DataSource`, which is Hikari in this service. Every
+`JdbcClient` operation borrows and returns a connection from that Hikari pool;
+transaction-bound operations use the same pool through Spring's transaction
+manager. The existing Hikari settings remain the source of truth for JDBC.
+
+Provider calls already use one shared Apache HttpClient connection pool. Expose
+its total/per-route limits and request timeouts through validated provider
+configuration instead of hard-coding the pool size in Java. Keep one shared
+pool initially because the existing bulkheads already cap each provider at 50
+concurrent calls and the total pool is 100.
+
+Distributed Redis will use one shared Lettuce connection pool for cache,
+coordination, and rate-limiter operations. Enable Spring Boot's standard
+`spring.data.redis.lettuce.pool.*` properties with `commons-pool2`; do not
+create a separate Redis pool for each adapter. Single-node excludes Redis
+auto-configuration and therefore does not create a Redis pool.
+
+Connection pools control concurrent resource usage. They do not replace rate
+limiters, which control requests per time window, or bulkheads, which preserve
+per-provider concurrency isolation.
+
 ## Request flow
 
 ```text
@@ -123,4 +147,4 @@ dependency is unavailable.
 - No UUID lookup in a servlet filter.
 - No trust of unvalidated `X-Forwarded-For` data.
 - No per-client quota until a trusted client identity is available.
-- No Redis connection-pool tuning without load-test evidence.
+- No separate Redis pool per feature or provider.

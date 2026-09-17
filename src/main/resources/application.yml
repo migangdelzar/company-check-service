@@ -1,24 +1,40 @@
 spring:
+  profiles:
+    default: single-node
+  main:
+    keep-alive: true
   threads:
     virtual:
       enabled: true
   datasource:
     hikari:
-      maximum-pool-size: 32
+      maximum-pool-size: 16
       minimum-idle: 4
-      connection-timeout: 500ms
-      validation-timeout: 250ms
-  data:
-    redis:
-      timeout: 500ms
-      connect-timeout: 250ms
-
+      connection-timeout: 250ms
+      validation-timeout: 100ms
+      idle-timeout: 10m
+      max-lifetime: 25m
 verification:
   lifetime: 10m
+  database:
+    transaction-timeout: 5s
+    retry:
+      max-attempts: 3
+      delay: 50ms
+      multiplier: 2
+      max-delay: 500ms
   expiration:
     reaper-delay: 1000ms
   providers:
     attempt-timeout: 500ms
+    pool:
+      max-connections-total: 100
+      max-connections-per-route: 50
+      connection-request-timeout: 100ms
+      connect-timeout: 150ms
+      response-timeout: 400ms
+      validate-after-inactivity: 5s
+      evict-idle-after: 30s
     free:
       base-url: "${VERIFICATION_FREE_BASE_URL:http://localhost:8081}"
       path: "${VERIFICATION_FREE_PATH:/free-third-party?query={query}}"
@@ -37,6 +53,18 @@ verification:
     waiter-poll: 50ms
     waiter-attempts: 20
     key-prefix: "company-check:"
+  rate-limiting:
+    key-prefix: "company-check:rate:"
+    free:
+      limit-for-period: 100
+      refresh-period: 1s
+    premium:
+      limit-for-period: 100
+      refresh-period: 1s
+  inbound-rate-limiting:
+    key-prefix: "company-check:inbound:"
+    limit-for-period: 100
+    refresh-period: 1s
 resilience4j:
   retry:
     aspect-order: 1
@@ -56,11 +84,6 @@ resilience4j:
     instances:
       freeProvider: { sliding-window-size: 20, minimum-number-of-calls: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s, permitted-number-of-calls-in-half-open-state: 2 }
       premiumProvider: { sliding-window-size: 20, minimum-number-of-calls: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s, permitted-number-of-calls-in-half-open-state: 2 }
-  ratelimiter:
-    aspect-order: 3
-    instances:
-      freeProvider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 }
-      premiumProvider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 }
   bulkhead:
     aspect-order: 4
     instances:
