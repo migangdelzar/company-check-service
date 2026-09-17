@@ -20,7 +20,7 @@ public class ApplicationConfiguration {
   }
 
   @Bean
-  ObjectMapper objectMapper() {
+  public ObjectMapper objectMapper() {
     return new ObjectMapper().registerModule(new JavaTimeModule());
   }
 }
