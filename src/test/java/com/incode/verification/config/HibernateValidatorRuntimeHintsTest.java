@@ -8,6 +8,7 @@ import org.hibernate.validator.internal.util.logging.Messages_$bundle;
 import org.junit.jupiter.api.Test;
 import org.springframework.aot.hint.MemberCategory;
 import org.springframework.aot.hint.RuntimeHints;
+import org.springframework.aot.hint.TypeReference;
 
 class HibernateValidatorRuntimeHintsTest {
   @Test
@@ -20,6 +21,13 @@ class HibernateValidatorRuntimeHintsTest {
     var bundleHint = hints.reflection().getTypeHint(Messages_$bundle.class);
     assertNotNull(bundleHint);
     assertTrue(bundleHint.fields().anyMatch(field -> field.getName().equals("INSTANCE")));
+    assertTypeHint(hints, "org.hibernate.validator.internal.util.logging.Messages_$bundle_en");
+    assertTypeHint(hints, "org.hibernate.validator.internal.util.logging.Messages_$bundle_en_US");
+    assertTypeHint(hints, "org.hibernate.validator.internal.util.logging.Messages_$bundle_en_MX");
+  }
+
+  private static void assertTypeHint(RuntimeHints hints, String typeName) {
+    assertNotNull(hints.reflection().getTypeHint(TypeReference.of(typeName)));
   }
 
   private static void assertConstructorHint(RuntimeHints hints, Class<?> type) {
