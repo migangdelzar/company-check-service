@@ -156,6 +156,9 @@ tasks.named<BootBuildImage>("bootBuildImage") {
     // Explicitly disable both buildpack features so the JVM variant remains a JVM image.
     environment.put("BP_NATIVE_IMAGE", "false")
     environment.put("BP_SPRING_AOT_ENABLED", "false")
+    // The JVM build uses a native-capable Gradle toolchain for the native variant.
+    // Force a regular JDK runtime here so the executable-jar process can find java.
+    environment.put("BP_JVM_TYPE", "JDK")
   }
   environment.putAll(
     validatedVariant.flatMap { variant ->
