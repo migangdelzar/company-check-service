@@ -16,6 +16,7 @@ class ProviderRuntimeHintsTest {
     new ProviderRuntimeHints().registerHints(hints, getClass().getClassLoader());
 
     assertConstructorHint(hints, ProviderEndpointProperties.class);
+    assertPublicMethodHint(hints, ProviderEndpointProperties.class);
     assertConstructorHint(hints, ProviderProperties.HttpPoolProperties.class);
     assertResponseHint(hints, FreeCompanyResponse.class);
     assertResponseHint(hints, PremiumCompanyResponse.class);
@@ -34,5 +35,11 @@ class ProviderRuntimeHintsTest {
     assertTrue(hint.getMemberCategories().contains(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS));
     assertTrue(hint.getMemberCategories().contains(MemberCategory.INVOKE_PUBLIC_METHODS));
     assertTrue(hint.getMemberCategories().contains(MemberCategory.ACCESS_DECLARED_FIELDS));
+  }
+
+  private static void assertPublicMethodHint(RuntimeHints hints, Class<?> type) {
+    var hint = hints.reflection().getTypeHint(type);
+    assertNotNull(hint);
+    assertTrue(hint.getMemberCategories().contains(MemberCategory.INVOKE_PUBLIC_METHODS));
   }
 }

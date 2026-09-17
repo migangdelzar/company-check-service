@@ -43,6 +43,7 @@ configured_topology="${PERFORMANCE_TOPOLOGY-}"
 configured_users_from_env="${PERFORMANCE_USERS-}"
 configured_spawn_rate_from_env="${PERFORMANCE_SPAWN_RATE-}"
 configured_duration_from_env="${PERFORMANCE_DURATION-}"
+configured_requests_from_env="${PERFORMANCE_REQUESTS-}"
 configured_artifacts_from_env="${PERFORMANCE_ARTIFACTS_DIR-}"
 service_image_was_configured=0
 provider_image_was_configured=0
@@ -55,6 +56,7 @@ topology_was_configured=0
 users_from_env_were_configured=0
 spawn_rate_from_env_was_configured=0
 duration_from_env_was_configured=0
+requests_from_env_was_configured=0
 artifacts_from_env_were_configured=0
 [[ ${COMPANY_CHECK_SERVICE_IMAGE+x} ]] && service_image_was_configured=1
 [[ ${COMPANY_CHECK_PROVIDER_IMAGE+x} ]] && provider_image_was_configured=1
@@ -67,6 +69,7 @@ artifacts_from_env_were_configured=0
 [[ ${PERFORMANCE_USERS+x} ]] && users_from_env_were_configured=1
 [[ ${PERFORMANCE_SPAWN_RATE+x} ]] && spawn_rate_from_env_was_configured=1
 [[ ${PERFORMANCE_DURATION+x} ]] && duration_from_env_was_configured=1
+[[ ${PERFORMANCE_REQUESTS+x} ]] && requests_from_env_was_configured=1
 [[ ${PERFORMANCE_ARTIFACTS_DIR+x} ]] && artifacts_from_env_were_configured=1
 
 if [[ -f .env ]]; then
@@ -86,6 +89,7 @@ fi
 (( users_from_env_were_configured )) && PERFORMANCE_USERS="$configured_users_from_env"
 (( spawn_rate_from_env_was_configured )) && PERFORMANCE_SPAWN_RATE="$configured_spawn_rate_from_env"
 (( duration_from_env_was_configured )) && PERFORMANCE_DURATION="$configured_duration_from_env"
+(( requests_from_env_was_configured )) && PERFORMANCE_REQUESTS="$configured_requests_from_env"
 (( artifacts_from_env_were_configured )) && PERFORMANCE_ARTIFACTS_DIR="$configured_artifacts_from_env"
 
 require_digest_image() {
@@ -124,6 +128,7 @@ configured_project_name="${COMPOSE_PROJECT_NAME-}"
 configured_users="${PERFORMANCE_USERS-}"
 configured_spawn_rate="${PERFORMANCE_SPAWN_RATE-}"
 configured_duration="${PERFORMANCE_DURATION-}"
+configured_requests="${PERFORMANCE_REQUESTS-}"
 configured_p95_ms="${PERFORMANCE_P95_MS-}"
 configured_failure_percent="${PERFORMANCE_FAILURE_PERCENT-}"
 configured_artifacts_dir="${PERFORMANCE_ARTIFACTS_DIR-}"
@@ -131,6 +136,7 @@ project_name_was_configured=0
 users_were_configured=0
 spawn_rate_was_configured=0
 duration_was_configured=0
+requests_were_configured=0
 p95_was_configured=0
 failure_percent_was_configured=0
 artifacts_dir_was_configured=0
@@ -138,6 +144,7 @@ project_name_was_configured="$compose_project_was_configured"
 [[ ${PERFORMANCE_USERS+x} ]] && users_were_configured=1
 [[ ${PERFORMANCE_SPAWN_RATE+x} ]] && spawn_rate_was_configured=1
 [[ ${PERFORMANCE_DURATION+x} ]] && duration_was_configured=1
+[[ ${PERFORMANCE_REQUESTS+x} ]] && requests_were_configured=1
 [[ ${PERFORMANCE_P95_MS+x} ]] && p95_was_configured=1
 [[ ${PERFORMANCE_FAILURE_PERCENT+x} ]] && failure_percent_was_configured=1
 [[ ${PERFORMANCE_ARTIFACTS_DIR+x} ]] && artifacts_dir_was_configured=1
@@ -147,6 +154,7 @@ set +a
 (( users_were_configured )) && PERFORMANCE_USERS="$configured_users"
 (( spawn_rate_was_configured )) && PERFORMANCE_SPAWN_RATE="$configured_spawn_rate"
 (( duration_was_configured )) && PERFORMANCE_DURATION="$configured_duration"
+(( requests_were_configured )) && PERFORMANCE_REQUESTS="$configured_requests"
 (( p95_was_configured )) && PERFORMANCE_P95_MS="$configured_p95_ms"
 (( failure_percent_was_configured )) && PERFORMANCE_FAILURE_PERCENT="$configured_failure_percent"
 (( artifacts_dir_was_configured )) && PERFORMANCE_ARTIFACTS_DIR="$configured_artifacts_dir"
@@ -159,6 +167,11 @@ fi
 
 artifacts="${PERFORMANCE_ARTIFACTS_DIR:-$workspace_root/.performance-artifacts}"
 mkdir -p "$artifacts"
+
+if [[ -n "${PERFORMANCE_REQUESTS:-}" && ! "$PERFORMANCE_REQUESTS" =~ ^[1-9][0-9]*$ ]]; then
+  printf 'PERFORMANCE_REQUESTS must be a positive integer: %s\n' "$PERFORMANCE_REQUESTS" >&2
+  exit 2
+fi
 
 cleanup() {
   status=$?
@@ -190,7 +203,9 @@ while (( SECONDS < deadline )); do
 done
 (( SECONDS < deadline )) || { printf 'backend did not become ready before timeout\n' >&2; exit 1; }
 
-"${compose[@]}" --profile performance run --rm --no-deps locust \
+"${compose[@]}" --profile performance run --rm --no-deps \
+  -e "PERFORMANCE_REQUESTS=${PERFORMANCE_REQUESTS:-}" \
+  locust \
   --headless \
   -f /mnt/performance/locustfile.py \
   --host http://backend:8080 \
@@ -222,6 +237,11 @@ IFS=, read -r _ _ request_count failure_count _ _ _ _ _ _ _ _ _ _ _ _ p95 _ <<<"
   printf 'Locust completed without requests\n' >&2
   exit 1
 }
+if [[ -n "${PERFORMANCE_REQUESTS:-}" && "$request_count" -ne "$PERFORMANCE_REQUESTS" ]]; then
+  printf 'Locust request budget mismatch: expected=%s actual=%s\n' \
+    "$PERFORMANCE_REQUESTS" "$request_count" >&2
+  exit 1
+fi
 
 failure_percent="$(awk -v failures="$failure_count" -v requests="$request_count" \
   'BEGIN { printf "%.2f", (failures * 100) / requests }')"

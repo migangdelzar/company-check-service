@@ -15,6 +15,7 @@ public final class ProviderRuntimeHints implements RuntimeHintsRegistrar {
         .registerType(
             ProviderEndpointProperties.class,
             MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+            MemberCategory.INVOKE_PUBLIC_METHODS,
             MemberCategory.ACCESS_DECLARED_FIELDS);
     hints
         .reflection()

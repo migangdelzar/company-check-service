@@ -1,0 +1,96 @@
+spring:
+  datasource:
+    hikari:
+      maximum-pool-size: 32
+      minimum-idle: 8
+      connection-timeout: 500
+      validation-timeout: 500
+  data:
+    redis:
+      timeout: 500ms
+      connect-timeout: 250ms
+      lettuce:
+        pool:
+          enabled: true
+          max-active: 64
+          max-idle: 32
+          min-idle: 8
+          max-wait: 250ms
+
+verification:
+  providers:
+    attempt-timeout: 1s
+    pool:
+      max-connections-total: 200
+      max-connections-per-route: 100
+      connection-request-timeout: 250ms
+      connect-timeout: 250ms
+      response-timeout: 750ms
+      validate-after-inactivity: 5s
+      evict-idle-after: 30s
+  coordination:
+    l1-maximum-size: 25000
+  rate-limiting:
+    free:
+      limit-for-period: 5000
+      refresh-period: 1s
+    premium:
+      limit-for-period: 5000
+      refresh-period: 1s
+  inbound-rate-limiting:
+    limit-for-period: 5000
+    refresh-period: 1s
+
+resilience4j:
+  retry:
+    instances:
+      freeProvider:
+        max-attempts: 2
+        wait-duration: 25ms
+      premiumProvider:
+        max-attempts: 2
+        wait-duration: 25ms
+  circuitbreaker:
+    instances:
+      freeProvider:
+        sliding-window-size: 100
+        minimum-number-of-calls: 50
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 10
+      premiumProvider:
+        sliding-window-size: 100
+        minimum-number-of-calls: 50
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 10s
+        permitted-number-of-calls-in-half-open-state: 10
+  bulkhead:
+    instances:
+      freeProvider:
+        max-concurrent-calls: 200
+        max-wait-duration: 0
+      premiumProvider:
+        max-concurrent-calls: 200
+        max-wait-duration: 0
+      backendService:
+        max-concurrent-calls: 1000
+        max-wait-duration: 0
+  ratelimiter:
+    instances:
+      backendService:
+        limit-for-period: 5000
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      freeProvider:
+        limit-for-period: 5000
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      premiumProvider:
+        limit-for-period: 5000
+        limit-refresh-period: 1s
+        timeout-duration: 0
+
+management:
+  tracing:
+    sampling:
+      probability: 0
