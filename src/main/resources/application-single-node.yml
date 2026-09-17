@@ -1,0 +1,22 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration
+      - org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration
+
+resilience4j:
+  ratelimiter:
+    aspect-order: 3
+    instances:
+      backendService:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      freeProvider:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 0
+      premiumProvider:
+        limit-for-period: 100
+        limit-refresh-period: 1s
+        timeout-duration: 0
