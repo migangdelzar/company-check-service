@@ -14,7 +14,8 @@ class CaffeineRuntimeHintsTest {
     var hints = new RuntimeHints();
     new CaffeineRuntimeHints().registerHints(hints, getClass().getClassLoader());
 
-    assertFields(hints, "com.github.benmanes.caffeine.cache.SSSMSA", "FACTORY", "expiresAfterAccessNanos");
+    assertFields(
+        hints, "com.github.benmanes.caffeine.cache.SSSMSA", "FACTORY", "expiresAfterAccessNanos");
     assertFields(hints, "com.github.benmanes.caffeine.cache.SSSMS", "maximum", "weightedSize");
     assertFields(hints, "com.github.benmanes.caffeine.cache.BoundedLocalCache", "refreshes");
     assertFields(hints, "com.github.benmanes.caffeine.cache.PS", "key", "value");

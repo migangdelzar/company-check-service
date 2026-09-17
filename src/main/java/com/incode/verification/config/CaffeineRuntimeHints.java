@@ -33,9 +33,7 @@ public final class CaffeineRuntimeHints implements RuntimeHintsRegistrar {
       hints.reflection().registerType(type);
     }
     registerFields(
-        hints,
-        "com.github.benmanes.caffeine.cache.BLCHeader$DrainStatusRef",
-        "drainStatus");
+        hints, "com.github.benmanes.caffeine.cache.BLCHeader$DrainStatusRef", "drainStatus");
     registerFields(
         hints,
         "com.github.benmanes.caffeine.cache.BaseMpscLinkedArrayQueueColdProducerFields",
