@@ -1,6 +1,7 @@
 package com.incode.verification.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import java.time.Clock;
 import java.time.Duration;
 import org.springframework.context.annotation.Bean;
@@ -20,6 +21,6 @@ public class ApplicationConfiguration {
 
   @Bean
   ObjectMapper objectMapper() {
-    return new ObjectMapper().findAndRegisterModules();
+    return new ObjectMapper().registerModule(new JavaTimeModule());
   }
 }

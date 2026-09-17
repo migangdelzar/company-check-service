@@ -45,6 +45,7 @@ spring-boot-starter-aspectj = { module = "org.springframework.boot:spring-boot-s
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
+jackson-datatype-jsr310 = { module = "com.fasterxml.jackson.datatype:jackson-datatype-jsr310" }
 flyway-core = { module = "org.flywaydb:flyway-core" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
 spring-boot-flyway = { module = "org.springframework.boot:spring-boot-flyway" }

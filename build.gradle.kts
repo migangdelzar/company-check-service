@@ -69,6 +69,7 @@ dependencies {
   implementation(libs.resilience4j.spring.boot4)
   implementation(libs.caffeine)
   implementation(libs.jackson.databind)
+  implementation(libs.jackson.datatype.jsr310)
 
   // Database migrations and runtime drivers
   implementation(libs.flyway.core)
