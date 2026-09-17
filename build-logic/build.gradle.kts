@@ -1,3 +1,4 @@
+import io.gitlab.arturbosch.detekt.Detekt
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
@@ -24,6 +25,12 @@ detekt {
   buildUponDefaultConfig = true
   config.setFrom(files("config/detekt/detekt.yml"))
   parallel = true
+}
+
+// Detekt currently supports JVM targets through 22 even when the build runs on
+// a newer Java toolchain. Keep the analyzer target compatible with its CLI.
+tasks.withType<Detekt>().configureEach {
+  jvmTarget = "22"
 }
 
 spotless {
