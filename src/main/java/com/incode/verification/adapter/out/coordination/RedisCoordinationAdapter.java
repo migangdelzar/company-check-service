@@ -25,15 +25,17 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
   private final Cache<String, VerificationView> l1;
   private final StringRedisTemplate redis;
   private final CoordinationProperties properties;
-  private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+  private final ObjectMapper mapper;
 
   public RedisCoordinationAdapter(
       Cache<String, VerificationView> l1,
       StringRedisTemplate redis,
-      CoordinationProperties properties) {
+      CoordinationProperties properties,
+      ObjectMapper mapper) {
     this.l1 = l1;
     this.redis = redis;
     this.properties = properties;
+    this.mapper = mapper;
   }
 
   @Override

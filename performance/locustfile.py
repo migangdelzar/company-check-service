@@ -16,4 +16,7 @@ class CompanyCheckUser(HttpUser):
 
     @task(1)
     def read_unknown_verification(self):
-        self.client.get(f"/verifications/{uuid.uuid4()}", name="GET /verifications/{verificationId}")
+        self.client.get(
+            f"/verifications/{uuid.uuid4()}",
+            name="GET /verifications/{verificationId}",
+        )

@@ -3,6 +3,7 @@ package com.incode.verification.adapter.out.coordination;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.incode.verification.adapter.config.CoordinationProperties;
@@ -27,7 +28,7 @@ class RedisCoordinationAdapterTest {
             Duration.ZERO,
             0,
             "test:");
-    var adapter = new RedisCoordinationAdapter(cache, null, properties);
+    var adapter = new RedisCoordinationAdapter(cache, null, properties, new ObjectMapper());
     var key = new LookupKey(new NormalizedQuery("ACME"));
     var view = new VerificationView(null, "acme", "ACME", null, null, null, null, null, null, null);
     adapter.cache(key, view);
@@ -51,7 +52,7 @@ class RedisCoordinationAdapterTest {
             "test:");
 
     var lease =
-        new RedisCoordinationAdapter(cache, null, properties)
+        new RedisCoordinationAdapter(cache, null, properties, new ObjectMapper())
             .acquire(
                 new LookupKey(
                     new com.incode.verification.domain.valueobject.NormalizedQuery("ACME")));

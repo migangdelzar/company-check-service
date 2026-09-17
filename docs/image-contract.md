@@ -10,6 +10,10 @@ The repository deliberately does not select or invent digest values. Supply the
 approved references in `gradle.properties` (which is local configuration) or as
 `-P` properties. A copyable template is in `gradle.properties.example`.
 
+The `composeDigestCheck` Gradle task applies the same immutable-reference rule
+to every image input used by the workspace Compose file. Supply the Compose
+image variables through the environment or `-P` properties before invoking it.
+
 The default is the JVM image. Native is explicit with
 `-PimageVariant=native -PnativeOptimization=b`; native builds receive exactly
 `-Ob`. Other optimization values and unknown variants are rejected during task

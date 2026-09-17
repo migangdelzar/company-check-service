@@ -1,5 +1,6 @@
 package com.incode.verification.adapter.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
@@ -43,7 +44,8 @@ public class CoordinationConfiguration {
   CoordinationPort coordinationPort(
       Cache<String, VerificationView> cache,
       org.springframework.data.redis.core.StringRedisTemplate redis,
-      CoordinationProperties p) {
-    return new RedisCoordinationAdapter(cache, redis, p);
+      CoordinationProperties p,
+      ObjectMapper mapper) {
+    return new RedisCoordinationAdapter(cache, redis, p, mapper);
   }
 }

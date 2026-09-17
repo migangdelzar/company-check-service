@@ -122,6 +122,34 @@ fun requireDigestImage(propertyName: String, image: String): String {
   return image
 }
 
+val composeImageVariables =
+  listOf(
+    "COMPANY_CHECK_SERVICE_IMAGE",
+    "COMPANY_CHECK_PROVIDER_IMAGE",
+    "POSTGRES_IMAGE",
+    "REDIS_IMAGE",
+    "PROMETHEUS_IMAGE",
+    "MIMIR_IMAGE",
+    "LOKI_IMAGE",
+    "TEMPO_IMAGE",
+    "GRAFANA_IMAGE",
+    "LOCUST_IMAGE",
+  )
+
+tasks.register("composeDigestCheck") {
+  group = "containers"
+  description = "Checks that all Compose image inputs are immutable digest references."
+  inputs.files(rootProject.layout.projectDirectory.file("../compose.yaml"))
+  doLast {
+    composeImageVariables.forEach { variable ->
+      val value =
+        providers.environmentVariable(variable).orElse(providers.gradleProperty(variable)).orNull
+      require(value != null) { "$variable must be supplied for Compose digest validation" }
+      requireDigestImage(variable, value)
+    }
+  }
+}
+
 val imageSmokeTimeoutSeconds =
   providers.gradleProperty("imageSmokeTimeoutSeconds").map { value ->
     value.toLongOrNull()?.also { timeout ->

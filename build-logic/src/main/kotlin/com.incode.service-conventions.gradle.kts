@@ -4,4 +4,5 @@ plugins {
   id("com.incode.quality-conventions")
   id("com.incode.contract-conventions")
   id("com.incode.container-conventions")
+  id("com.incode.performance-conventions")
 }
