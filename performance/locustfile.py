@@ -1,6 +1,7 @@
 import os
 import uuid
 
+from gevent import spawn_later
 from gevent.lock import Semaphore
 from locust import HttpUser, between, events, task
 from locust.exception import StopUser
@@ -8,11 +9,13 @@ from locust.exception import StopUser
 STRICT_HTTP_RESPONSES = os.getenv("PERFORMANCE_STRICT_HTTP", "false").lower() == "true"
 REQUEST_LIMIT_VALUE = os.getenv("PERFORMANCE_REQUESTS", "").strip()
 REQUEST_LIMIT = int(REQUEST_LIMIT_VALUE) if REQUEST_LIMIT_VALUE else None
+AT_LEAST_REQUEST_LIMIT = os.getenv("PERFORMANCE_REQUESTS_AT_LEAST", "false").lower() == "true"
 
 _budget_lock = Semaphore()
 _reserved_requests = 0
 _completed_requests = 0
 _environment = None
+_stop_scheduled = False
 
 
 @events.init.add_listener
@@ -23,7 +26,7 @@ def initialize_request_budget(environment, **_kwargs):
 
 @events.request.add_listener
 def stop_after_request_budget(**_kwargs):
-    global _completed_requests
+    global _completed_requests, _stop_scheduled
     if REQUEST_LIMIT is None:
         return
 
@@ -32,7 +35,14 @@ def stop_after_request_budget(**_kwargs):
         budget_reached = _completed_requests >= REQUEST_LIMIT
 
     if budget_reached and _environment and _environment.runner:
-        _environment.runner.quit()
+        if AT_LEAST_REQUEST_LIMIT:
+            with _budget_lock:
+                if _stop_scheduled:
+                    return
+                _stop_scheduled = True
+            spawn_later(1.0, _environment.runner.quit)
+        else:
+            _environment.runner.quit()
 
 
 def reserve_request():

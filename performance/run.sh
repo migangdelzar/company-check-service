@@ -19,6 +19,11 @@ fi
 
 topology="${PERFORMANCE_TOPOLOGY:-single}"
 compose+=( -f "$workspace_root/compose.yaml" )
+compose_profiles=(--profile performance)
+if [[ "${PERFORMANCE_OBSERVABILITY:-false}" == "true" ]]; then
+  compose+=( -f "$workspace_root/compose.observability.yaml" )
+  compose_profiles+=(--profile observability)
+fi
 compose_scale=()
 case "$topology" in
   single) compose+=( -f "$workspace_root/compose.single.yaml" ) ;;
@@ -177,18 +182,22 @@ fi
 cleanup() {
   status=$?
   if (( status != 0 )); then
-    "${compose[@]}" --profile performance logs --no-color >"$artifacts/compose.log" 2>&1 || true
-    "${compose[@]}" --profile performance ps --all >"$artifacts/compose-ps.txt" 2>&1 || true
+    "${compose[@]}" "${compose_profiles[@]}" logs --no-color >"$artifacts/compose.log" 2>&1 || true
+    "${compose[@]}" "${compose_profiles[@]}" ps --all >"$artifacts/compose-ps.txt" 2>&1 || true
   fi
-  "${compose[@]}" --profile performance down >/dev/null 2>&1 || true
+  if [[ "${PERFORMANCE_KEEP_STACK:-false}" != "true" ]]; then
+    "${compose[@]}" "${compose_profiles[@]}" down -v >/dev/null 2>&1 || true
+  else
+    printf 'Keeping the stack running for observability inspection\n'
+  fi
   exit "$status"
 }
 trap cleanup EXIT INT TERM
 
 if ((${#compose_scale[@]})); then
-  "${compose[@]}" --profile performance up -d "${compose_scale[@]}"
+  "${compose[@]}" "${compose_profiles[@]}" up -d "${compose_scale[@]}"
 else
-  "${compose[@]}" --profile performance up -d
+  "${compose[@]}" "${compose_profiles[@]}" up -d
 fi
 timeout_seconds="${COMPOSE_WAIT_TIMEOUT_SECONDS:-120}"
 deadline=$((SECONDS + timeout_seconds))
@@ -197,15 +206,16 @@ while (( SECONDS < deadline )); do
   case "$status" in
     *" exited "*|*" dead "*) printf '%s\n' "$status" >&2; exit 1 ;;
   esac
-  "${compose[@]}" --profile performance run --rm --no-deps --entrypoint python locust \
+  "${compose[@]}" "${compose_profiles[@]}" run --rm --no-deps --entrypoint python locust \
     -c \
     'import urllib.request; urllib.request.urlopen("http://backend:8080/actuator/health", timeout=2)' \
     >/dev/null 2>&1 && break
 done
 (( SECONDS < deadline )) || { printf 'backend did not become ready before timeout\n' >&2; exit 1; }
 
-"${compose[@]}" --profile performance run --rm --no-deps \
+"${compose[@]}" "${compose_profiles[@]}" run --rm --no-deps \
   -e "PERFORMANCE_REQUESTS=${PERFORMANCE_REQUESTS:-}" \
+  -e "PERFORMANCE_REQUESTS_AT_LEAST=${PERFORMANCE_REQUESTS_AT_LEAST:-false}" \
   locust \
   --headless \
   -f /mnt/performance/locustfile.py \
@@ -238,10 +248,18 @@ IFS=, read -r _ _ request_count failure_count _ _ _ _ _ _ _ _ _ _ _ _ p95 _ <<<"
   printf 'Locust completed without requests\n' >&2
   exit 1
 }
-if [[ -n "${PERFORMANCE_REQUESTS:-}" && "$request_count" -ne "$PERFORMANCE_REQUESTS" ]]; then
-  printf 'Locust request budget mismatch: expected=%s actual=%s\n' \
-    "$PERFORMANCE_REQUESTS" "$request_count" >&2
-  exit 1
+if [[ -n "${PERFORMANCE_REQUESTS:-}" ]]; then
+  if [[ "${PERFORMANCE_REQUESTS_AT_LEAST:-false}" == "true" ]]; then
+    if (( request_count < PERFORMANCE_REQUESTS )); then
+      printf 'Locust minimum request budget missed: expected_at_least=%s actual=%s\n' \
+        "$PERFORMANCE_REQUESTS" "$request_count" >&2
+      exit 1
+    fi
+  elif [[ "$request_count" -ne "$PERFORMANCE_REQUESTS" ]]; then
+    printf 'Locust request budget mismatch: expected=%s actual=%s\n' \
+      "$PERFORMANCE_REQUESTS" "$request_count" >&2
+    exit 1
+  fi
 fi
 
 failure_percent="$(awk -v failures="$failure_count" -v requests="$request_count" \
