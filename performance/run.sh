@@ -167,6 +167,7 @@ fi
 
 artifacts="${PERFORMANCE_ARTIFACTS_DIR:-$workspace_root/.performance-artifacts}"
 mkdir -p "$artifacts"
+chmod 0777 "$artifacts"
 
 if [[ -n "${PERFORMANCE_REQUESTS:-}" && ! "$PERFORMANCE_REQUESTS" =~ ^[1-9][0-9]*$ ]]; then
   printf 'PERFORMANCE_REQUESTS must be a positive integer: %s\n' "$PERFORMANCE_REQUESTS" >&2
