@@ -6,6 +6,15 @@ service_root="$(CDPATH= cd -- "$script_dir/.." && pwd)"
 workspace_root="$(CDPATH= cd -- "$service_root/.." && pwd)"
 cd "$workspace_root"
 
+if docker compose version >/dev/null 2>&1; then
+  compose=(docker compose)
+elif docker-compose version >/dev/null 2>&1; then
+  compose=(docker-compose)
+else
+  printf 'Docker Compose is required (docker compose or docker-compose)\n' >&2
+  exit 2
+fi
+
 if [[ -f .env ]]; then
   set -a
   . ./.env
@@ -37,19 +46,19 @@ mkdir -p "$artifacts"
 cleanup() {
   status=$?
   if (( status != 0 )); then
-    docker compose --profile performance logs --no-color >"$artifacts/compose.log" 2>&1 || true
-    docker compose --profile performance ps --all >"$artifacts/compose-ps.txt" 2>&1 || true
+    "${compose[@]}" --profile performance logs --no-color >"$artifacts/compose.log" 2>&1 || true
+    "${compose[@]}" --profile performance ps --all >"$artifacts/compose-ps.txt" 2>&1 || true
   fi
-  docker compose --profile performance down >/dev/null 2>&1 || true
+  "${compose[@]}" --profile performance down >/dev/null 2>&1 || true
   exit "$status"
 }
 trap cleanup EXIT INT TERM
 
-docker compose --profile performance up -d
+"${compose[@]}" --profile performance up -d
 timeout_seconds="${COMPOSE_WAIT_TIMEOUT_SECONDS:-120}"
 deadline=$((SECONDS + timeout_seconds))
 while (( SECONDS < deadline )); do
-  status="$(docker compose ps --all --format '{{.Service}} {{.State}} {{.Health}}')"
+  status="$("${compose[@]}" ps --all --format '{{.Service}} {{.State}} {{.Health}}')"
   case "$status" in
     *" exited "*|*" dead "*) printf '%s\n' "$status" >&2; exit 1 ;;
   esac
@@ -57,7 +66,7 @@ while (( SECONDS < deadline )); do
 done
 (( SECONDS < deadline )) || { printf 'backend did not become healthy before timeout\n' >&2; exit 1; }
 
-docker compose --profile performance run --rm locust \
+"${compose[@]}" --profile performance run --rm locust \
   --headless \
   -f /mnt/performance/locustfile.py \
   --host http://backend:8080 \

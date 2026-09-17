@@ -16,7 +16,12 @@ class CompanyCheckUser(HttpUser):
 
     @task(1)
     def read_unknown_verification(self):
-        self.client.get(
+        with self.client.get(
             f"/verifications/{uuid.uuid4()}",
             name="GET /verifications/{verificationId}",
-        )
+            catch_response=True,
+        ) as response:
+            if response.status_code == 404:
+                response.success()
+            else:
+                response.failure(f"expected 404, received {response.status_code}")
