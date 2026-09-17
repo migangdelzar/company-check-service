@@ -1,58 +1,57 @@
 package com.incode.verification.adapter.out.coordination;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.incode.verification.adapter.config.CoordinationProperties;
+import com.incode.verification.configuration.CoordinationProperties;
 import com.incode.verification.application.port.out.CoordinationPort;
-import com.incode.verification.application.port.out.VerificationView;
-import com.incode.verification.domain.valueobject.LookupKey;
-import com.incode.verification.domain.valueobject.UuidV7;
+import com.incode.verification.application.result.VerificationResult;
+import com.incode.verification.domain.query.NormalizedQuery;
+import com.incode.verification.domain.identity.UuidV7;
+import io.micrometer.observation.annotation.Observed;
 import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 
-public final class RedisCoordinationAdapter implements CoordinationPort {
+public class RedisCoordinationAdapter implements CoordinationPort {
   private static final Logger log = LoggerFactory.getLogger(RedisCoordinationAdapter.class);
-  private static final String RELEASE =
-      "if redis.call('get',KEYS[1])==ARGV[1] then return redis.call('del',KEYS[1]) else return 0 end";
   private static final String TAKEOVER =
       "if redis.call('exists',KEYS[1])==0 then return redis.call('set',KEYS[1],ARGV[1],'NX','PX',"
           + "ARGV[2]) else return nil end";
   private static final DefaultRedisScript<String> TAKEOVER_SCRIPT =
       new DefaultRedisScript<>(TAKEOVER, String.class);
-  private static final DefaultRedisScript<Long> RELEASE_SCRIPT =
-      new DefaultRedisScript<>(RELEASE, Long.class);
-  private final Cache<String, VerificationView> l1;
   private final StringRedisTemplate redis;
+  private final CacheManager cacheManager;
   private final CoordinationProperties properties;
   private final ObjectMapper mapper;
 
   public RedisCoordinationAdapter(
-      Cache<String, VerificationView> l1,
       StringRedisTemplate redis,
+      CacheManager cacheManager,
       CoordinationProperties properties,
       ObjectMapper mapper) {
-    this.l1 = l1;
     this.redis = redis;
+    this.cacheManager = cacheManager;
     this.properties = properties;
     this.mapper = mapper;
   }
 
   @Override
-  public Optional<VerificationView> cached(LookupKey key) {
-    String k = cacheKey(key);
-    VerificationView value = l1.getIfPresent(k);
-    if (value != null) return Optional.of(value);
+  @Observed(name = "verification.cache.read")
+  @Cacheable(cacheNames = "verification", key = "#query.value()", unless = "#result.isEmpty()")
+  public Optional<VerificationResult> get(NormalizedQuery query) {
+    String cacheKey = keyForCache(query);
     try {
-      String json = redis.opsForValue().get(k);
-      if (json == null) return Optional.empty();
-      VerificationView view = mapper.readValue(json, VerificationView.class);
-      l1.put(k, view);
-      return Optional.of(view);
+      String json = redis.opsForValue().get(cacheKey);
+      if (json == null) {
+        return Optional.empty();
+      }
+      return Optional.of(mapper.readValue(json, VerificationResult.class));
     } catch (Exception exception) {
       log.debug("Redis cache read unavailable; treating cache as a miss", exception);
       return Optional.empty();
@@ -60,26 +59,33 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
   }
 
   @Override
-  public void cache(LookupKey key, VerificationView view) {
-    String k = cacheKey(key);
-    l1.put(k, view);
+  @Observed(name = "verification.cache.write")
+  @CachePut(cacheNames = "verification", key = "#query.value()")
+  public VerificationResult put(NormalizedQuery query, VerificationResult result) {
+    String cacheKey = keyForCache(query);
     try {
-      long millis = ttlMillis(view);
-      redis.opsForValue().set(k, mapper.writeValueAsString(view), Duration.ofMillis(millis));
+      long millis = ttlMillis(result);
+      redis.opsForValue().set(cacheKey, mapper.writeValueAsString(result), Duration.ofMillis(millis));
     } catch (Exception exception) {
       log.debug("Redis cache write unavailable; continuing with local cache", exception);
     }
+    return result;
   }
 
   @Override
-  public Lease acquire(LookupKey key) {
-    String leaseKey = properties.keyPrefix() + "lease:" + key.query().value();
+  @Observed(name = "verification.coordination.acquire")
+  public Lease acquire(NormalizedQuery query) {
+    String leaseKey = properties.keyPrefix() + "lease:" + query.value();
     String token = UuidV7.generate().toString();
     try {
       Boolean acquired = redis.opsForValue().setIfAbsent(leaseKey, token, properties.leaseTtl());
-      if (Boolean.TRUE.equals(acquired)) return new RedisLease(leaseKey, token, true, false);
+      if (Boolean.TRUE.equals(acquired)) {
+        return new RedisLease(redis, leaseKey, token, true, false);
+      }
       for (int i = 0; i < properties.waiterAttempts(); i++) {
-        if (cached(key).isPresent()) return new RedisLease(leaseKey, token, false, false);
+        if (cached(query)) {
+          return new RedisLease(redis, leaseKey, token, false, false);
+        }
         Thread.sleep(properties.waiterPoll().toMillis());
       }
       String takeover =
@@ -88,51 +94,28 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
               java.util.List.of(leaseKey),
               token,
               String.valueOf(properties.leaseTtl().toMillis()));
-      return new RedisLease(leaseKey, token, "OK".equals(takeover), false);
+      return new RedisLease(redis, leaseKey, token, "OK".equals(takeover), false);
     } catch (Exception exception) {
       log.debug("Redis coordination unavailable; refusing external lookup ownership", exception);
-      return new RedisLease(leaseKey, token, false, true);
+      return new RedisLease(redis, leaseKey, token, false, true);
     }
   }
 
-  private long ttlMillis(VerificationView view) {
-    return properties.ttlFor(view).toMillis()
+  private boolean cached(NormalizedQuery query) {
+    var cache = cacheManager.getCache("verification");
+    if (cache == null) {
+      return false;
+    }
+    return cache.get(query.value(), VerificationResult.class) != null;
+  }
+
+  private long ttlMillis(VerificationResult result) {
+    return properties.ttlFor(result).toMillis()
         + ThreadLocalRandom.current().nextLong(properties.jitter().toMillis() + 1);
   }
 
-  private String cacheKey(LookupKey key) {
-    return properties.keyPrefix() + "cache:v1:" + key.query().value();
+  private String keyForCache(NormalizedQuery query) {
+    return properties.keyPrefix() + "cache:v1:" + query.value();
   }
 
-  private final class RedisLease implements Lease {
-    private final String key, token;
-    private final boolean acquired, degraded;
-
-    RedisLease(String key, String token, boolean acquired, boolean degraded) {
-      this.key = key;
-      this.token = token;
-      this.acquired = acquired;
-      this.degraded = degraded;
-    }
-
-    @Override
-    public boolean acquired() {
-      return acquired;
-    }
-
-    @Override
-    public boolean degraded() {
-      return degraded;
-    }
-
-    @Override
-    public void close() {
-      if (!degraded)
-        try {
-          redis.execute(RELEASE_SCRIPT, java.util.List.of(key), token);
-        } catch (Exception exception) {
-          log.debug("Redis lease release unavailable", exception);
-        }
-    }
-  }
 }

@@ -1,22 +1,17 @@
 package com.incode.verification.adapter.out.coordination;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.incode.verification.adapter.config.CoordinationProperties;
-import com.incode.verification.application.port.out.VerificationView;
-import com.incode.verification.domain.valueobject.LookupKey;
-import com.incode.verification.domain.valueobject.NormalizedQuery;
+import com.incode.verification.configuration.CoordinationProperties;
+import com.incode.verification.application.result.VerificationResult;
+import com.incode.verification.domain.query.NormalizedQuery;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 class RedisCoordinationAdapterTest {
   @Test
-  void l1ReturnsImmutableCachedViewWithoutRedisRoundTrip() {
-    Cache<String, VerificationView> cache = Caffeine.newBuilder().maximumSize(1).build();
+  void putReturnsImmutableCachedResultWithoutRedisRoundTrip() {
     var properties =
         new CoordinationProperties(
             1,
@@ -28,17 +23,14 @@ class RedisCoordinationAdapterTest {
             Duration.ZERO,
             0,
             "test:");
-    var adapter = new RedisCoordinationAdapter(cache, null, properties, new ObjectMapper());
-    var key = new LookupKey(new NormalizedQuery("ACME"));
-    var view = new VerificationView(null, "acme", "ACME", null, null, null, null, null, null, null);
-    adapter.cache(key, view);
-    assertTrue(adapter.cached(key).isPresent());
-    assertEquals(view, adapter.cached(key).orElseThrow());
+    var adapter = new RedisCoordinationAdapter(null, null, properties, new ObjectMapper());
+    var query = new NormalizedQuery("ACME");
+    var result = new VerificationResult(null, "acme", "ACME", null, null, null, null, null, null, null);
+    assertEquals(result, adapter.put(query, result));
   }
 
   @Test
   void marksRedisFailureAsDegradedWithoutGrantingLookupOwnership() {
-    Cache<String, VerificationView> cache = Caffeine.newBuilder().maximumSize(1).build();
     var properties =
         new CoordinationProperties(
             1,
@@ -52,10 +44,9 @@ class RedisCoordinationAdapterTest {
             "test:");
 
     var lease =
-        new RedisCoordinationAdapter(cache, null, properties, new ObjectMapper())
+            new RedisCoordinationAdapter(null, null, properties, new ObjectMapper())
             .acquire(
-                new LookupKey(
-                    new com.incode.verification.domain.valueobject.NormalizedQuery("ACME")));
+                new NormalizedQuery("ACME"));
 
     assertEquals(false, lease.acquired());
     assertEquals(true, lease.degraded());

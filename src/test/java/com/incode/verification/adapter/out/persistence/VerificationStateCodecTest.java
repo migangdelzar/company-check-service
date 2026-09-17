@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.incode.verification.domain.type.ProviderFailure;
-import com.incode.verification.domain.type.VerificationState;
+import com.incode.verification.domain.provider.ProviderFailure;
+import com.incode.verification.domain.verification.VerificationState;
 import org.junit.jupiter.api.Test;
 
 class VerificationStateCodecTest {

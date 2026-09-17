@@ -2,18 +2,20 @@ package com.incode.verification.adapter.out.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.application.port.out.VerificationRepository;
-import com.incode.verification.domain.aggregate.Verification;
-import com.incode.verification.domain.valueobject.NormalizedQuery;
-import com.incode.verification.domain.valueobject.UuidV7;
+import com.incode.verification.domain.verification.Verification;
+import com.incode.verification.domain.query.NormalizedQuery;
+import com.incode.verification.domain.identity.UuidV7;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public final class JdbcVerificationRepository implements VerificationRepository {
+public class JdbcVerificationRepository implements VerificationRepository {
   private final JdbcClient jdbc;
   private final VerificationStateCodec codec;
 
@@ -23,33 +25,27 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   }
 
   @Override
-  public void insertInProgress(Verification v) {
-    var e = VerificationEntity.from(v, codec.encode(v.state()), null);
+  public boolean insertInProgress(Verification verification) {
+    var entity =
+        VerificationEntity.fromVerification(verification, codec.encode(verification.state()), null);
     int inserted =
         jdbc.sql(
                 "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) "
                     + "VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb)) "
                     + "ON CONFLICT (id) DO NOTHING")
-            .param("id", e.id())
-            .param("raw", e.rawQuery())
-            .param("normalized", e.normalizedQuery())
-            .param("started", e.startedAt())
-            .param("expires", e.expiresAt())
-            .param("status", e.status())
-            .param("state", e.stateJson())
+            .param("id", entity.id())
+            .param("raw", entity.rawQuery())
+            .param("normalized", entity.normalizedQuery())
+            .param("started", Timestamp.from(entity.startedAt()))
+            .param("expires", Timestamp.from(entity.expiresAt()))
+            .param("status", entity.status())
+            .param("state", entity.stateJson())
             .update();
-    if (inserted == 0)
-      throw new com.incode.verification.application.port.out.VerificationAlreadyExistsException(
-          new IllegalStateException("verification id already exists"));
+    return inserted == 1;
   }
 
   @Override
-  public void update(Verification v) {
-    throw new UnsupportedOperationException("terminal updates require a claim token");
-  }
-
-  @Override
-  public UUID claim(UUID id) {
+  public @Nullable UUID claim(UUID id) {
     UUID token = UuidV7.generate();
     int changed =
         jdbc.sql(
@@ -59,19 +55,28 @@ public final class JdbcVerificationRepository implements VerificationRepository 
             .param("id", id)
             .param("token", token)
             .update();
-    return changed == 1 ? token : null;
+    if (changed != 1) {
+      return null;
+    }
+    return token;
   }
 
   @Override
-  public boolean updateTerminal(UUID id, UUID token, Verification v) {
-    var e = VerificationEntity.from(v, codec.encode(v.state()), token);
+  public boolean complete(UUID id, UUID token, Verification verification) {
+    if (!id.equals(verification.id())
+        || verification.state()
+            instanceof com.incode.verification.domain.verification.VerificationState.InProgress) {
+      return false;
+    }
+    var entity =
+        VerificationEntity.fromVerification(verification, codec.encode(verification.state()), token);
     return jdbc.sql(
                 "UPDATE verifications SET status=:status,state=CAST(:state AS jsonb),"
                     + "claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP "
                     + "WHERE id=:id AND status='IN_PROGRESS' "
                     + "AND claim_token=:token")
-            .param("status", e.status())
-            .param("state", e.stateJson())
+            .param("status", entity.status())
+            .param("state", entity.stateJson())
             .param("id", id)
             .param("token", token)
             .update()
@@ -87,13 +92,13 @@ public final class JdbcVerificationRepository implements VerificationRepository 
                 + "state=CAST(:state AS jsonb),claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP "
                 + "FROM candidates c "
                 + "WHERE v.id=c.id")
-        .param("now", now)
+        .param("now", Timestamp.from(now))
         .param("limit", limit)
         .param(
             "state",
             codec.encode(
-                new com.incode.verification.domain.type.VerificationState.Failed(
-                    new com.incode.verification.domain.type.ProviderFailure.Timeout())))
+                new com.incode.verification.domain.verification.VerificationState.Failed(
+                    new com.incode.verification.domain.provider.ProviderFailure.Timeout())))
         .update();
   }
 
@@ -108,7 +113,7 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   }
 
   @Override
-  public Optional<Verification> findTerminalByQuery(NormalizedQuery query) {
+  public Optional<Verification> findByQuery(NormalizedQuery query) {
     return jdbc.sql(
             "SELECT id,raw_query,normalized_query,started_at,expires_at,state "
                 + "FROM verifications WHERE normalized_query=:normalized "
@@ -118,13 +123,13 @@ public final class JdbcVerificationRepository implements VerificationRepository 
         .optional();
   }
 
-  private Verification map(ResultSet rs, int row) throws java.sql.SQLException {
+  private Verification map(ResultSet resultSet, int row) throws java.sql.SQLException {
     return new Verification(
-        UUID.fromString(rs.getString("id")),
-        rs.getString("raw_query"),
-        new NormalizedQuery(rs.getString("normalized_query")),
-        rs.getTimestamp("started_at").toInstant(),
-        rs.getTimestamp("expires_at").toInstant(),
-        codec.decode(rs.getString("state")));
+        UUID.fromString(resultSet.getString("id")),
+        resultSet.getString("raw_query"),
+        new NormalizedQuery(resultSet.getString("normalized_query")),
+        resultSet.getTimestamp("started_at").toInstant(),
+        resultSet.getTimestamp("expires_at").toInstant(),
+        codec.decode(resultSet.getString("state")));
   }
 }

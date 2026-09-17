@@ -3,10 +3,10 @@ package com.incode.verification.adapter.out.persistence;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.ProviderFailure;
-import com.incode.verification.domain.type.ProviderType;
-import com.incode.verification.domain.type.VerificationState;
+import com.incode.verification.domain.company.Company;
+import com.incode.verification.domain.provider.ProviderFailure;
+import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.domain.verification.VerificationState;
 
 final class VerificationStateCodec {
   private static final int VERSION = 1;
@@ -19,7 +19,9 @@ final class VerificationStateCodec {
   String encode(VerificationState state) {
     try {
       ObjectNode root = mapper.createObjectNode().put("version", VERSION);
-      if (state instanceof VerificationState.InProgress) root.put("type", "IN_PROGRESS");
+      if (state instanceof VerificationState.InProgress) {
+        root.put("type", "IN_PROGRESS");
+      }
       if (state instanceof VerificationState.Completed s) {
         root.put("type", "COMPLETED");
         root.set("company", mapper.valueToTree(s.company()));
@@ -28,8 +30,9 @@ final class VerificationStateCodec {
       }
       if (state instanceof VerificationState.Failed s) {
         root.put("type", "FAILED").put("failure", failureName(s.failure()));
-        if (s.failure() instanceof ProviderFailure.ClientError clientError)
+        if (s.failure() instanceof ProviderFailure.ClientError clientError) {
           root.put("statusCode", clientError.statusCode());
+        }
       }
       return mapper.writeValueAsString(root);
     } catch (Exception e) {
@@ -40,8 +43,9 @@ final class VerificationStateCodec {
   VerificationState decode(String json) {
     try {
       JsonNode root = mapper.readTree(json);
-      if (root.path("version").asInt() != VERSION)
+      if (root.path("version").asInt() != VERSION) {
         throw new IllegalArgumentException("unsupported state version");
+      }
       return switch (root.path("type").asText()) {
         case "IN_PROGRESS" -> new VerificationState.InProgress();
         case "COMPLETED" ->

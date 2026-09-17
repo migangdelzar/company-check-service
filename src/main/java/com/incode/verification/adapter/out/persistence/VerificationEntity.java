@@ -1,8 +1,9 @@
 package com.incode.verification.adapter.out.persistence;
 
-import com.incode.verification.domain.aggregate.Verification;
+import com.incode.verification.domain.verification.Verification;
 import java.time.Instant;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 record VerificationEntity(
     UUID id,
@@ -12,20 +13,23 @@ record VerificationEntity(
     Instant expiresAt,
     String status,
     String stateJson,
-    UUID claimToken) {
-  static VerificationEntity from(Verification v, String json, UUID token) {
+    @Nullable UUID claimToken) {
+  static VerificationEntity fromVerification(
+      Verification verification, String stateJson, @Nullable UUID claimToken) {
     return new VerificationEntity(
-        v.id(),
-        v.rawQuery(),
-        v.query().value(),
-        v.startedAt(),
-        v.expiresAt(),
-        v.state() instanceof com.incode.verification.domain.type.VerificationState.InProgress
+        verification.id(),
+        verification.rawQuery(),
+        verification.query().value(),
+        verification.startedAt(),
+        verification.expiresAt(),
+        verification.state()
+                instanceof com.incode.verification.domain.verification.VerificationState.InProgress
             ? "IN_PROGRESS"
-            : v.state() instanceof com.incode.verification.domain.type.VerificationState.Completed
+            : verification.state()
+                    instanceof com.incode.verification.domain.verification.VerificationState.Completed
                 ? "COMPLETED"
                 : "FAILED",
-        json,
-        token);
+        stateJson,
+        claimToken);
   }
 }
