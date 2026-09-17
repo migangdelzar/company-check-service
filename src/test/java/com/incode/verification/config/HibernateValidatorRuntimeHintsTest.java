@@ -17,6 +17,9 @@ class HibernateValidatorRuntimeHintsTest {
 
     assertConstructorHint(hints, Log_$logger.class);
     assertConstructorHint(hints, Messages_$bundle.class);
+    var bundleHint = hints.reflection().getTypeHint(Messages_$bundle.class);
+    assertNotNull(bundleHint);
+    assertTrue(bundleHint.getMemberCategories().contains(MemberCategory.ACCESS_PUBLIC_FIELDS));
   }
 
   private static void assertConstructorHint(RuntimeHints hints, Class<?> type) {
