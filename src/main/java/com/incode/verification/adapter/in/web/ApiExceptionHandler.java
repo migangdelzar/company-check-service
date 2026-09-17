@@ -1,6 +1,6 @@
 package com.incode.verification.adapter.in.web;
 
-import com.incode.verification.application.service.VerificationException;
+import com.incode.verification.application.exception.VerificationException;
 import com.incode.verification.domain.query.InvalidQueryException;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;

@@ -2,10 +2,10 @@ package com.incode.verification.adapter.in.web;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.incode.verification.application.service.CoordinationUnavailableException;
-import com.incode.verification.application.service.ProviderSubmissionException;
-import com.incode.verification.application.service.VerificationConflictException;
-import com.incode.verification.application.service.VerificationNotFoundException;
+import com.incode.verification.application.exception.CoordinationUnavailableException;
+import com.incode.verification.application.exception.ProviderSubmissionException;
+import com.incode.verification.application.exception.VerificationConflictException;
+import com.incode.verification.application.exception.VerificationNotFoundException;
 import com.incode.verification.domain.provider.ProviderFailure;
 import org.junit.jupiter.api.Test;
 

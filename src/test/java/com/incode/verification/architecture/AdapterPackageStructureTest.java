@@ -31,11 +31,38 @@ class AdapterPackageStructureTest {
             SOURCE_ROOT.resolve("adapter/in/scheduling/VerificationExpirationScheduler.java")));
     assertTrue(Files.exists(SOURCE_ROOT.resolve("adapter/out/provider/FreeProvider.java")));
     assertTrue(Files.exists(SOURCE_ROOT.resolve("adapter/out/provider/ResilientProvider.java")));
+    assertTrue(
+        Files.exists(SOURCE_ROOT.resolve("application/exception/VerificationException.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/exception/VerificationConflictException.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/exception/VerificationNotFoundException.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/exception/ProviderSubmissionException.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/exception/CoordinationUnavailableException.java")));
 
     assertFalse(Files.exists(SOURCE_ROOT.resolve("adapter/config")));
     assertFalse(Files.exists(SOURCE_ROOT.resolve("adapter/out/expiration")));
     assertFalse(Files.exists(SOURCE_ROOT.resolve("configuration/ApplicationConfiguration.java")));
     assertFalse(
         Files.exists(SOURCE_ROOT.resolve("configuration/ProviderResilienceConfiguration.java")));
+    assertFalse(
+        Files.exists(SOURCE_ROOT.resolve("application/service/VerificationException.java")));
+    assertFalse(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/service/VerificationConflictException.java")));
+    assertFalse(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/service/VerificationNotFoundException.java")));
+    assertFalse(
+        Files.exists(SOURCE_ROOT.resolve("application/service/ProviderSubmissionException.java")));
+    assertFalse(
+        Files.exists(
+            SOURCE_ROOT.resolve("application/service/CoordinationUnavailableException.java")));
   }
 }

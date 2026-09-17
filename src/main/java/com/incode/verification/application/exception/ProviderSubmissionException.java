@@ -1,4 +1,4 @@
-package com.incode.verification.application.service;
+package com.incode.verification.application.exception;
 
 import com.incode.verification.domain.provider.ProviderFailure;
 

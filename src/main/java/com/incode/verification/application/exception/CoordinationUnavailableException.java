@@ -1,4 +1,4 @@
-package com.incode.verification.application.service;
+package com.incode.verification.application.exception;
 
 public final class CoordinationUnavailableException extends VerificationException {
   public CoordinationUnavailableException(String message) {

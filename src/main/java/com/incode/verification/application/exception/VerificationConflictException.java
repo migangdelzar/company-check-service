@@ -1,4 +1,4 @@
-package com.incode.verification.application.service;
+package com.incode.verification.application.exception;
 
 public final class VerificationConflictException extends VerificationException {
   public VerificationConflictException(String code, String message) {

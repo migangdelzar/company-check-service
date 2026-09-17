@@ -4,6 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import com.incode.verification.application.exception.CoordinationUnavailableException;
+import com.incode.verification.application.exception.ProviderSubmissionException;
+import com.incode.verification.application.exception.VerificationConflictException;
+import com.incode.verification.application.exception.VerificationNotFoundException;
 import com.incode.verification.application.port.in.GetVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationCommand;
 import com.incode.verification.application.port.in.StartVerificationUseCase;
@@ -11,10 +15,8 @@ import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.result.VerificationResult;
-import com.incode.verification.application.service.CoordinationUnavailableException;
 import com.incode.verification.application.service.GetVerificationService;
 import com.incode.verification.application.service.ProviderResolutionService;
-import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.StartVerificationService;
 import com.incode.verification.application.service.VerificationRecoveryService;
 import com.incode.verification.application.service.VerificationStoreService;
@@ -131,7 +133,7 @@ class VerificationUseCaseServiceTest {
         VerificationStatus.COMPLETED,
         service.start(new StartVerificationCommand(id, "acme")).status());
     assertThrows(
-        com.incode.verification.application.service.VerificationConflictException.class,
+        VerificationConflictException.class,
         () -> service.start(new StartVerificationCommand(id, "other")));
     assertEquals(List.of(), providerCalls);
   }
@@ -155,7 +157,7 @@ class VerificationUseCaseServiceTest {
             q -> new ProviderResult.Success(List.of()));
     var error =
         assertThrows(
-            com.incode.verification.application.service.VerificationConflictException.class,
+            VerificationConflictException.class,
             () -> service.start(new StartVerificationCommand(id, "ACME")));
     assertEquals("VERIFICATION_IN_PROGRESS", error.code());
   }
@@ -393,10 +395,8 @@ class VerificationUseCaseServiceTest {
             q -> new ProviderResult.Success(List.of()),
             q -> new ProviderResult.Success(List.of()));
     assertInstanceOf(
-        com.incode.verification.application.service.VerificationNotFoundException.class,
-        assertThrows(
-            com.incode.verification.application.service.VerificationNotFoundException.class,
-            () -> service.get(UUID.randomUUID())));
+        VerificationNotFoundException.class,
+        assertThrows(VerificationNotFoundException.class, () -> service.get(UUID.randomUUID())));
   }
 
   private Services service(

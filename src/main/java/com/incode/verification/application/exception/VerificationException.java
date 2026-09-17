@@ -1,4 +1,4 @@
-package com.incode.verification.application.service;
+package com.incode.verification.application.exception;
 
 import org.jspecify.annotations.Nullable;
 

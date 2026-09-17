@@ -1,5 +1,6 @@
 package com.incode.verification.application.service;
 
+import com.incode.verification.application.exception.VerificationNotFoundException;
 import com.incode.verification.application.port.in.GetVerificationUseCase;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.result.VerificationResult;
