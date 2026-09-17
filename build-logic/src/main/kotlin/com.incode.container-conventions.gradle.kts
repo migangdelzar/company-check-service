@@ -78,6 +78,25 @@ val validatedVariant =
     variant
   }
 
+if (validatedVariant.get() == "jvm") {
+  // Keep the JVM image as a regular executable JAR. The GraalVM plugin wires
+  // Spring AOT tasks into the image lifecycle, which activates native-image
+  // metadata even when the native-image buildpack is not requested.
+  tasks
+    .matching { task ->
+      task.name in
+        setOf(
+          "aotClasses",
+          "collectReachabilityMetadata",
+          "compileAotJava",
+          "processAot",
+          "processAotResources",
+        )
+    }.configureEach {
+      enabled = false
+    }
+}
+
 // Build metadata
 val javaExtension = extensions.getByType<JavaPluginExtension>()
 val imageLabels =
