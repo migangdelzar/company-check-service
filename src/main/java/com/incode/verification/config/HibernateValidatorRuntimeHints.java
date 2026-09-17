@@ -18,7 +18,8 @@ public final class HibernateValidatorRuntimeHints implements RuntimeHintsRegistr
         .reflection()
         .registerType(
             Messages_$bundle.class,
-            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
-            MemberCategory.ACCESS_PUBLIC_FIELDS);
+            type ->
+                type.withMembers(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS)
+                    .withField("INSTANCE"));
   }
 }

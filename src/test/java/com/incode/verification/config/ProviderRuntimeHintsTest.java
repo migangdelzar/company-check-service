@@ -15,8 +15,16 @@ class ProviderRuntimeHintsTest {
     var hints = new RuntimeHints();
     new ProviderRuntimeHints().registerHints(hints, getClass().getClassLoader());
 
+    assertConstructorHint(hints, ProviderEndpointProperties.class);
+    assertConstructorHint(hints, ProviderProperties.HttpPoolProperties.class);
     assertResponseHint(hints, FreeCompanyResponse.class);
     assertResponseHint(hints, PremiumCompanyResponse.class);
+  }
+
+  private static void assertConstructorHint(RuntimeHints hints, Class<?> type) {
+    var hint = hints.reflection().getTypeHint(type);
+    assertNotNull(hint);
+    assertTrue(hint.getMemberCategories().contains(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS));
   }
 
   private static void assertResponseHint(RuntimeHints hints, Class<?> responseType) {

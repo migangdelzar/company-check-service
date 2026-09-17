@@ -10,6 +10,15 @@ import org.springframework.aot.hint.RuntimeHintsRegistrar;
 public final class ProviderRuntimeHints implements RuntimeHintsRegistrar {
   @Override
   public void registerHints(RuntimeHints hints, @Nullable ClassLoader classLoader) {
+    hints
+        .reflection()
+        .registerType(
+            ProviderEndpointProperties.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+    hints
+        .reflection()
+        .registerType(
+            ProviderProperties.HttpPoolProperties.class,
+            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
     registerProviderResponse(hints, FreeCompanyResponse.class);
     registerProviderResponse(hints, PremiumCompanyResponse.class);
   }

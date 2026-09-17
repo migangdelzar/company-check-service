@@ -1,6 +1,8 @@
 package com.incode;
 
+import com.incode.verification.config.CaffeineRuntimeHints;
 import com.incode.verification.config.HibernateValidatorRuntimeHints;
+import com.incode.verification.config.ProviderRuntimeHints;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
@@ -8,7 +10,11 @@ import org.springframework.context.annotation.ImportRuntimeHints;
 
 @SpringBootApplication
 @ConfigurationPropertiesScan(basePackages = "com.incode")
-@ImportRuntimeHints(HibernateValidatorRuntimeHints.class)
+@ImportRuntimeHints({
+  HibernateValidatorRuntimeHints.class,
+  CaffeineRuntimeHints.class,
+  ProviderRuntimeHints.class
+})
 public final class CompanyCheckApplication {
   private CompanyCheckApplication() {}
 
