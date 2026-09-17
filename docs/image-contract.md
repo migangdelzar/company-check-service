@@ -10,6 +10,35 @@ The repository deliberately does not select or invent digest values. Supply the
 approved references in `gradle.properties` (which is local configuration) or as
 `-P` properties. A copyable template is in `gradle.properties.example`.
 
+For the complete local setup, use one of the repository's `mise` commands from
+the workspace root:
+
+```sh
+mise run setup-jvm
+# or
+mise run setup-native
+```
+
+Both commands run the provider checks, build the provider and service local
+images, start the single-node Compose stack, and wait for the backend health
+endpoint. They create `.env` from `.env.example` only when `.env` is absent.
+They still require approved digest-pinned Paketo references in the local
+`gradle.properties`; the setup does not invent or overwrite those values.
+
+## Image-build memory guidance
+
+The setup runner checks the active Docker daemon before starting a build. These
+are repository operational recommendations, not hard Paketo platform minimums:
+
+| Image path | Docker memory | Reason |
+|---|---:|---|
+| JVM | 4 GiB recommended | 2 GiB is a constrained lower-bound attempt and may fail from Gradle/Paketo overhead. |
+| Native | 12 GiB recommended | The native build includes the GraalVM/native-image toolchain and native compilation. |
+
+See the [Paketo Java Native Image Buildpack reference](https://paketo.io/docs/reference/java-native-image-reference/)
+for the buildpack-provided native-image toolchain contract. The runner does
+not stop or resize an existing Docker Desktop or Colima runtime.
+
 The `composeDigestCheck` Gradle task applies the same immutable-reference rule
 to every image input used by the workspace Compose file. Supply the Compose
 image variables through the environment or `-P` properties before invoking it.
