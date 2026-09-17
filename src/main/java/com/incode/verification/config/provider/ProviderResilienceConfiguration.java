@@ -2,7 +2,6 @@ package com.incode.verification.config.provider;
 
 import com.incode.verification.client.FreeProviderClient;
 import com.incode.verification.client.PremiumProviderClient;
-import com.incode.verification.client.ProviderClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,13 +12,13 @@ import org.springframework.web.client.RestClient;
 @Profile("single-node")
 public class ProviderResilienceConfiguration {
   @Bean
-  ProviderClient freeProvider(
+  FreeProviderClient freeProvider(
       @Qualifier("freeProviderClient") RestClient client, ProviderProperties properties) {
     return new FreeProviderClient(client, properties.free());
   }
 
   @Bean
-  ProviderClient premiumProvider(
+  PremiumProviderClient premiumProvider(
       @Qualifier("premiumProviderClient") RestClient client, ProviderProperties properties) {
     return new PremiumProviderClient(client, properties.premium());
   }

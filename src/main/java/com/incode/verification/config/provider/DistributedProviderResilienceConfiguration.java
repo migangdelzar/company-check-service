@@ -2,7 +2,6 @@ package com.incode.verification.config.provider;
 
 import com.incode.verification.client.DistributedFreeProviderClient;
 import com.incode.verification.client.DistributedPremiumProviderClient;
-import com.incode.verification.client.ProviderClient;
 import com.incode.verification.repository.ratelimit.ProviderRateLimiter;
 import com.incode.verification.repository.ratelimit.RedisProviderRateLimiter;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -22,7 +21,7 @@ public class DistributedProviderResilienceConfiguration {
   }
 
   @Bean
-  ProviderClient freeProvider(
+  DistributedFreeProviderClient freeProvider(
       @Qualifier("freeProviderClient") RestClient client,
       ProviderProperties properties,
       ProviderRateLimiter rateLimiter) {
@@ -30,7 +29,7 @@ public class DistributedProviderResilienceConfiguration {
   }
 
   @Bean
-  ProviderClient premiumProvider(
+  DistributedPremiumProviderClient premiumProvider(
       @Qualifier("premiumProviderClient") RestClient client,
       ProviderProperties properties,
       ProviderRateLimiter rateLimiter) {
