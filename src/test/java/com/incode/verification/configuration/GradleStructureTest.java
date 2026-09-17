@@ -18,16 +18,13 @@ class GradleStructureTest {
     String rootBuild = read(SERVICE_ROOT.resolve("build.gradle.kts"));
 
     assertTrue(settings.contains("includeBuild(\"build-logic\")"));
-    assertTrue(rootBuild.contains("id(\"com.incode.java-conventions\")"));
+    assertTrue(rootBuild.contains("java"));
     assertTrue(rootBuild.contains("id(\"com.incode.testing-conventions\")"));
     assertTrue(rootBuild.contains("id(\"com.incode.quality-conventions\")"));
     assertTrue(rootBuild.contains("id(\"com.incode.contract-conventions\")"));
     assertTrue(rootBuild.contains("id(\"com.incode.container-conventions\")"));
     assertTrue(Files.exists(BUILD_LOGIC_ROOT.resolve("settings.gradle.kts")));
     assertTrue(Files.exists(BUILD_LOGIC_ROOT.resolve("build.gradle.kts")));
-    assertTrue(
-        Files.exists(
-            BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.java-conventions.gradle.kts")));
     assertTrue(rootBuild.contains("alias(libs.plugins.spring.boot)"));
     assertFalse(
         Files.exists(
@@ -91,14 +88,13 @@ class GradleStructureTest {
   @Test
   void centralizesBuildLogicVersionsInTheVersionCatalog() throws IOException {
     String catalog = read(SERVICE_ROOT.resolve("gradle/libs.versions.toml"));
+    String rootBuild = read(SERVICE_ROOT.resolve("build.gradle.kts"));
     String buildLogic = read(BUILD_LOGIC_ROOT.resolve("build.gradle.kts"));
     String quality =
         read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.quality-conventions.gradle.kts"));
     String contracts =
         read(
             BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.contract-conventions.gradle.kts"));
-    String java =
-        read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.java-conventions.gradle.kts"));
 
     assertTrue(catalog.contains("java = \"25\""));
     assertTrue(catalog.contains("google-java-format = \"1.28.0\""));
@@ -111,7 +107,7 @@ class GradleStructureTest {
     assertTrue(buildLogic.contains("findLibrary(\"error-prone-gradle-plugin\")"));
     assertTrue(quality.contains("findVersion(\"google-java-format\")"));
     assertTrue(contracts.contains("findVersion(\"redocly-cli\")"));
-    assertTrue(java.contains("findVersion(\"java\")"));
+    assertTrue(rootBuild.contains("libs.versions.java"));
   }
 
   private String read(Path path) throws IOException {

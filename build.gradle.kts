@@ -1,11 +1,21 @@
+import org.gradle.jvm.toolchain.JavaLanguageVersion
+
 plugins {
   alias(libs.plugins.spring.boot)
-  id("com.incode.java-conventions")
+  java
   id("com.incode.testing-conventions")
   id("com.incode.quality-conventions")
   id("com.incode.contract-conventions")
   id("com.incode.container-conventions")
 }
+
+java.toolchain.languageVersion.set(
+  JavaLanguageVersion.of(
+    libs.versions.java
+      .get()
+      .toInt(),
+  ),
+)
 
 dependencies {
   // Platform and framework BOMs
