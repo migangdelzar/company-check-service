@@ -1,5 +1,6 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.testing.Test
 
 plugins {
   `kotlin-dsl`
@@ -14,6 +15,9 @@ dependencies {
   implementation(libsCatalog.findLibrary("spotless-gradle-plugin").get())
   implementation(libsCatalog.findLibrary("error-prone-gradle-plugin").get())
   implementation(libsCatalog.findLibrary("nullaway-gradle-plugin").get())
+  testImplementation(gradleTestKit())
+  testImplementation(libsCatalog.findLibrary("junit-jupiter").get())
+  testRuntimeOnly(libsCatalog.findLibrary("junit-platform-launcher").get())
 }
 
 detekt {
@@ -40,6 +44,11 @@ spotless {
 tasks.withType<JavaCompile>().configureEach {
   options.encoding = "UTF-8"
   options.isIncremental = true
+}
+
+tasks.withType<Test>().configureEach {
+  useJUnitPlatform()
+  systemProperty("buildLogicRoot", rootDir.absolutePath)
 }
 
 tasks.named("check") {
