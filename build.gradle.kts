@@ -72,6 +72,7 @@ dependencies {
 
   // Static analysis
   checkstyle(libs.checkstyle)
+  checkstyle("org.codehaus.plexus:plexus-utils:3.6.1")
   errorprone(libs.error.prone.core)
   errorprone(libs.nullaway)
 
