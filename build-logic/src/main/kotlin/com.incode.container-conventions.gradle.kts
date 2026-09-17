@@ -171,10 +171,10 @@ tasks.named<BootBuildImage>("bootBuildImage") {
     environment.put("BP_NATIVE_IMAGE", "true")
     environment.put("BP_SPRING_AOT_ENABLED", "true")
   } else {
-    // The GraalVM plugin contributes native/AOT metadata even for JVM image builds.
-    // Do not set BP_NATIVE_IMAGE: its presence activates Paketo's native-image buildpack.
+    // Spring Boot's image task defaults BP_NATIVE_IMAGE to true when the
+    // GraalVM plugin is present. Override it for the regular JVM image.
+    environment.put("BP_NATIVE_IMAGE", "false")
     environment.put("BP_SPRING_AOT_ENABLED", "false")
-    // The JVM build uses a native-capable Gradle toolchain for the native variant.
     // Force a regular JDK runtime here so the executable-jar process can find java.
     environment.put("BP_JVM_TYPE", "JDK")
   }

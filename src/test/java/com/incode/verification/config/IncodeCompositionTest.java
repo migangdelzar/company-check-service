@@ -46,5 +46,7 @@ class IncodeCompositionTest {
     assertTrue(build.contains("toolchainDetection.set(true)"));
     assertTrue(build.contains("nativeImageCapable.set(true)"));
     assertTrue(build.contains("javaLauncher.set"));
+    assertTrue(build.contains("Spring-Boot-Native-Processed"));
+    assertTrue(build.contains("manifest.attributes.remove"));
   }
 }
