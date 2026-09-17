@@ -1,5 +1,4 @@
 import org.gradle.jvm.toolchain.JavaLanguageVersion
-import org.springframework.boot.gradle.tasks.bundling.BootJar
 
 plugins {
   alias(libs.plugins.spring.boot)
@@ -22,8 +21,6 @@ val javaLanguageVersion =
 
 java.toolchain.languageVersion.set(javaLanguageVersion)
 
-val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm").get()
-
 graalvmNative {
   // Keep the regular JVM toolchain independent from the native-image toolchain.
   // The Foojay resolver provisions a matching native-image-capable JDK on demand.
@@ -37,15 +34,6 @@ graalvmNative {
         },
       )
     }
-  }
-}
-
-if (imageVariant == "jvm") {
-  // The GraalVM plugin marks the executable JAR as native-processed even when
-  // the JVM image path does not run AOT tasks. Remove that marker so Paketo
-  // cannot select its native-image build plan for a JVM image.
-  tasks.named<BootJar>("bootJar") {
-    manifest.attributes.remove("Spring-Boot-Native-Processed")
   }
 }
 

@@ -40,13 +40,16 @@ class IncodeCompositionTest {
   void nativeBuildUsesAnAutomaticallyProvisionedNativeImageToolchain() throws Exception {
     String settings = Files.readString(Path.of("settings.gradle.kts"));
     String build = Files.readString(Path.of("build.gradle.kts"));
+    String containerConvention =
+        Files.readString(
+            Path.of("build-logic/src/main/kotlin/com.incode.container-conventions.gradle.kts"));
 
     assertTrue(settings.contains("org.gradle.toolchains.foojay-resolver-convention"));
     assertTrue(build.contains("graalvmNative"));
     assertTrue(build.contains("toolchainDetection.set(true)"));
     assertTrue(build.contains("nativeImageCapable.set(true)"));
     assertTrue(build.contains("javaLauncher.set"));
-    assertTrue(build.contains("Spring-Boot-Native-Processed"));
-    assertTrue(build.contains("manifest.attributes.remove"));
+    assertTrue(containerConvention.contains("Spring-Boot-Native-Processed"));
+    assertTrue(containerConvention.contains("manifest.attributes.remove"));
   }
 }

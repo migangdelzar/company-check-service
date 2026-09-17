@@ -1,9 +1,8 @@
-import org.gradle.api.plugins.JavaPluginExtension
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
+import org.springframework.boot.gradle.tasks.bundling.BootJar
 import java.time.Duration
 
 // Image configuration
-val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
 val configuredImageName =
   providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
 
@@ -14,15 +13,6 @@ val publishImage =
     .map { value ->
       value.toBooleanStrictOrNull() ?: error("publishImage must be true or false")
     }.orElse(false)
-val configuredImagePlatform =
-  providers
-    .gradleProperty("imagePlatform")
-    .map { platform ->
-      require(platform.matches(Regex("^linux/(amd64|arm64)$"))) {
-        "imagePlatform must be linux/amd64 or linux/arm64"
-      }
-      platform
-    }.orElse("linux/amd64")
 val paketoCacheVolumePrefix =
   providers.gradleProperty("paketoCacheVolumePrefix").orElse("company-check-service").map { prefix ->
     require(prefix.matches(Regex("^[a-z0-9][a-z0-9_.-]{0,62}$"))) {
@@ -43,39 +33,19 @@ val cleanPaketoCache =
     .map { value ->
       value.toBooleanStrictOrNull() ?: error("cleanPaketoCache must be true or false")
     }.orElse(false)
-val paketoBuilderImage =
-  providers.gradleProperty("paketoBuilderImage").map { image ->
-    requireDigestImage("paketoBuilderImage", image)
-  }
-val paketoRunImage =
-  providers.gradleProperty("paketoRunImage").map { image ->
-    requireDigestImage("paketoRunImage", image)
-  }
-
-// Requested-task validation
-val imageTaskRequested =
-  gradle.startParameter.taskNames.any { task ->
-    task.substringAfterLast(':') in setOf("image", "imageSmoke", "containerCheck", "bootBuildImage")
-  }
-if (imageTaskRequested) {
-  require(paketoBuilderImage.isPresent) {
-    "paketoBuilderImage is required and must be a digest-pinned image"
-  }
-  require(paketoRunImage.isPresent) {
-    "paketoRunImage is required and must be a digest-pinned image"
-  }
-}
-val nativeOptimization =
-  providers.gradleProperty("nativeOptimization").orElse("b").map { optimization ->
-    require(optimization == "b") { "nativeOptimization must be: b" }
-    optimization
-  }
 val validatedVariant =
-  imageVariant.map { variant ->
+  providers.gradleProperty("imageVariant").orElse("jvm").map { variant ->
     require(variant == "jvm" || variant == "native") {
       "imageVariant must be one of: jvm, native"
     }
     variant
+  }
+
+val requestedImagePlatform =
+  providers.gradleProperty("imagePlatform").orNull?.also { platform ->
+    require(platform.matches(Regex("^linux/(amd64|arm64)$"))) {
+      "imagePlatform must be linux/amd64 or linux/arm64"
+    }
   }
 
 if (validatedVariant.get() == "jvm") {
@@ -95,10 +65,15 @@ if (validatedVariant.get() == "jvm") {
     }.configureEach {
       enabled = false
     }
+  // The GraalVM plugin marks the executable JAR as native-processed even when
+  // the JVM image path does not run AOT tasks. Remove that marker so Paketo
+  // cannot select its native-image build plan for a JVM image.
+  tasks.named<BootJar>("bootJar") {
+    manifest.attributes.remove("Spring-Boot-Native-Processed")
+  }
 }
 
 // Build metadata
-val javaExtension = extensions.getByType<JavaPluginExtension>()
 val imageLabels =
   listOf(
     "org.opencontainers.image.title=company-check-service",
@@ -107,32 +82,11 @@ val imageLabels =
     "org.opencontainers.image.vendor=Incode",
   ).joinToString(",")
 
-fun org.gradle.api.Task.imageInputs() {
-  inputs.properties(
-    mapOf(
-      "imageVariant" to validatedVariant,
-      "imageName" to configuredImageName,
-      "publishImage" to publishImage,
-      "imagePlatform" to configuredImagePlatform,
-      "paketoCacheVolumePrefix" to paketoCacheVolumePrefix,
-      "paketoPullPolicy" to paketoPullPolicy,
-      "cleanPaketoCache" to cleanPaketoCache,
-      "nativeOptimization" to nativeOptimization,
-      "paketoBuilderImage" to paketoBuilderImage,
-      "paketoRunImage" to paketoRunImage,
-    ),
-  )
-  inputs.files(
-    layout.projectDirectory.file("gradle.lockfile"),
-    layout.projectDirectory.file("settings-gradle.lockfile"),
-  )
-}
-
 tasks.named<BootBuildImage>("bootBuildImage") {
   group = "containers"
   imageName.set(configuredImageName)
+  requestedImagePlatform?.let { imagePlatform.set(it) }
   publish.set(publishImage)
-  imagePlatform.set(configuredImagePlatform)
   setPullPolicy(paketoPullPolicy.get())
   cleanCache.set(cleanPaketoCache)
   buildCache {
@@ -150,26 +104,15 @@ tasks.named<BootBuildImage>("bootBuildImage") {
       name.set(paketoCacheVolumePrefix.map { "$it.workspace" })
     }
   }
-  imageInputs()
-  builder.set(paketoBuilderImage)
-  runImage.set(paketoRunImage)
   environment.put(
     "BP_IMAGE_LABELS",
     providers.provider { imageLabels },
-  )
-  environment.put(
-    "BP_JVM_VERSION",
-    providers.provider {
-      javaExtension.toolchain.languageVersion
-        .get()
-        .asInt()
-        .toString()
-    },
   )
   environment.put("BPE_DEFAULT_BPL_JVM_HEAD_ROOM", providers.provider { "10" })
   if (validatedVariant.get() == "native") {
     environment.put("BP_NATIVE_IMAGE", "true")
     environment.put("BP_SPRING_AOT_ENABLED", "true")
+    environment.put("BP_NATIVE_IMAGE_BUILD_ARGUMENTS", "-Ob")
   } else {
     // Spring Boot's image task defaults BP_NATIVE_IMAGE to true when the
     // GraalVM plugin is present. Override it for the regular JVM image.
@@ -178,24 +121,6 @@ tasks.named<BootBuildImage>("bootBuildImage") {
     // Force a regular JDK runtime here so the executable-jar process can find java.
     environment.put("BP_JVM_TYPE", "JDK")
   }
-  environment.putAll(
-    validatedVariant.flatMap { variant ->
-      if (variant == "native") {
-        nativeOptimization.map { optimization ->
-          mapOf("BP_NATIVE_IMAGE_BUILD_ARGUMENTS" to "-O$optimization")
-        }
-      } else {
-        providers.provider { emptyMap() }
-      }
-    },
-  )
-}
-
-tasks.register("image") {
-  group = "containers"
-  description = "Builds the JVM or native image with Paketo via Spring Boot."
-  dependsOn("bootBuildImage")
-  imageInputs()
 }
 
 fun requireDigestImage(
@@ -265,10 +190,9 @@ tasks.register("imageSmoke") {
   notCompatibleWithConfigurationCache(
     "Docker process execution is intentionally isolated from configuration-cache serialization.",
   )
-  dependsOn("image")
+  dependsOn("bootBuildImage")
   outputs.cacheIf { false }
   inputs.property("imageName", configuredImageName)
-  inputs.property("imagePlatform", configuredImagePlatform)
   inputs.property("timeoutSeconds", imageSmokeTimeoutSeconds)
   doLast {
     val image = configuredImageName.get()

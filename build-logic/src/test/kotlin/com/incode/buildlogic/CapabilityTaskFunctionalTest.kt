@@ -58,8 +58,6 @@ class CapabilityTaskFunctionalTest {
         javaSpringBootAndContainerPlugins(),
         "containerCheck",
         "--dry-run",
-        "-PpaketoBuilderImage=paketobuildpacks/builder-jammy-base@sha256:${"0".repeat(64)}",
-        "-PpaketoRunImage=paketobuildpacks/run-jammy-base@sha256:${"0".repeat(64)}",
       )
 
     assertTrue(result.output.contains(":containerCheck"))

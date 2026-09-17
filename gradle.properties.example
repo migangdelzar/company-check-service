@@ -16,10 +16,8 @@ localBuildCachePush=true
 # remoteBuildCachePassword=<secret>
 # remoteBuildCacheAllowInsecure=false
 
-# Copy these required immutable references into gradle.properties or pass them
-# with -P. Floating tags and invented digests are intentionally unsupported.
-paketoBuilderImage=paketobuildpacks/builder-jammy-base@sha256:<64-hex-digest>
-paketoRunImage=paketobuildpacks/run-jammy-base@sha256:<64-hex-digest>
+# Optional Paketo image controls. Spring Boot resolves the Paketo builder and
+# its embedded run image automatically; these only tune caching and publication.
 paketoCacheVolumePrefix=company-check-service
 paketoPullPolicy=IF_NOT_PRESENT
 cleanPaketoCache=false
@@ -32,10 +30,9 @@ imageSmokeTimeoutSeconds=15
 # visible inside that VM/container namespace.
 # testcontainersDockerSocketOverride=/var/run/docker.sock
 
-# JVM is the default. Native is opt-in; the only accepted optimization is b.
+# JVM is the default. Native is opt-in:
 # `nativeCompile` automatically provisions a Java 25 native-image-capable JDK
 # through the Foojay Gradle toolchain resolver; no local GraalVM installation is
 # required. Paketo performs the equivalent provisioning inside native image
-# builder containers for `image -PimageVariant=native`.
+# builder containers for `bootBuildImage -PimageVariant=native`.
 # imageVariant=native
-# nativeOptimization=b
