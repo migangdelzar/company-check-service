@@ -1,0 +1,20 @@
+package com.incode.verification.service.model;
+
+import java.util.List;
+import java.util.Objects;
+import org.jspecify.annotations.Nullable;
+
+public sealed interface VerificationState
+    permits VerificationState.InProgress, VerificationState.Completed, VerificationState.Failed {
+  record InProgress() implements VerificationState {}
+
+  record Completed(@Nullable Company company, List<Company> otherResults, ProviderType provider)
+      implements VerificationState {
+    public Completed {
+      otherResults = List.copyOf(Objects.requireNonNull(otherResults, "otherResults"));
+      Objects.requireNonNull(provider, "provider");
+    }
+  }
+
+  record Failed(ProviderFailure failure) implements VerificationState {}
+}

@@ -78,12 +78,12 @@ resilience4j:
         max-attempts: 2
         wait-duration: 25ms
         retry-exceptions:
-          - com.incode.verification.adapter.out.provider.ProviderTransientException
+          - com.incode.verification.exception.ProviderTransientException
       premiumProvider:
         max-attempts: 2
         wait-duration: 25ms
         retry-exceptions:
-          - com.incode.verification.adapter.out.provider.ProviderTransientException
+          - com.incode.verification.exception.ProviderTransientException
   circuitbreaker:
     aspect-order: 2
     instances:

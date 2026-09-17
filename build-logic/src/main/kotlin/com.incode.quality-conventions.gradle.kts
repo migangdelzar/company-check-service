@@ -21,6 +21,11 @@ val buildLogicCheckReference =
     .firstOrNull { includedBuild -> includedBuild.projectDir == rootProject.file("build-logic") }
     ?.task(":check")
 val unitTest = tasks.named<Test>("test")
+val coverageExcludedPaths =
+  listOf(
+    "com/incode/verification/client/**",
+    "com/incode/verification/repository/**",
+  )
 
 jacoco { reportsDirectory.set(jacocoArtifactDirectory) }
 checkstyle { toolVersion = libsCatalog.findVersion("checkstyle").get().requiredVersion }
@@ -55,6 +60,11 @@ tasks
     group = "quality"
   }
 
+// GraalVM's AOT task checks generated framework sources, which are outside the
+// service's formatting and style boundary.
+tasks.matching { task -> task.name == "checkstyleAot" }.configureEach { enabled = false }
+tasks.matching { task -> task.name == "checkstyleAotTest" }.configureEach { enabled = false }
+
 tasks.register("buildLogicCheck") {
   group = "quality"
   description = "Checks the service-owned Gradle convention plugins."
@@ -67,9 +77,7 @@ tasks.named<JacocoReport>("jacocoTestReport") {
     files(
       classDirectories.files.map { directory ->
         fileTree(directory) {
-          exclude(
-            "com/incode/verification/adapter/out/**",
-          )
+          exclude(*coverageExcludedPaths.toTypedArray())
         }
       },
     ),
@@ -87,9 +95,7 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
     files(
       classDirectories.files.map { directory ->
         fileTree(directory) {
-          exclude(
-            "com/incode/verification/adapter/out/**",
-          )
+          exclude(*coverageExcludedPaths.toTypedArray())
         }
       },
     ),
