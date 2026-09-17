@@ -25,6 +25,7 @@ testing {
           implementation(project())
           if (suiteName == "integrationTest") {
             implementation(libsCatalog.findLibrary("testcontainers-junit-jupiter").get())
+            implementation(libsCatalog.findLibrary("testcontainers").get())
             implementation(libsCatalog.findLibrary("testcontainers-postgresql").get())
           }
         }

@@ -1,0 +1,7 @@
+<!ELEMENT suppressions (suppress*)>
+<!ELEMENT suppress EMPTY>
+<!ATTLIST suppress checks CDATA #IMPLIED>
+<!ATTLIST suppress files CDATA #IMPLIED>
+<!ATTLIST suppress id CDATA #IMPLIED>
+<!ATTLIST suppress lines CDATA #IMPLIED>
+<!ATTLIST suppress columns CDATA #IMPLIED>

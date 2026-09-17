@@ -1,0 +1,26 @@
+config:
+  validation: true
+  warningsAsErrors: true
+
+complexity:
+  LongMethod:
+    active: true
+    threshold: 60
+  LargeClass:
+    active: true
+    threshold: 300
+  LongParameterList:
+    active: true
+    functionThreshold: 6
+    constructorThreshold: 6
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+
+style:
+  MagicNumber:
+    active: false
+  ReturnCount:
+    active: true
+    max: 4

@@ -10,6 +10,11 @@ google-java-format = "1.28.0"
 redocly-cli = "1.34.0"
 error-prone = "4.2.0"
 error-prone-core = "2.36.0"
+nullaway = "0.13.5"
+nullaway-plugin = "3.1.0"
+detekt = "1.23.8"
+ktlint = "1.5.0"
+ktlint-gradle = "13.1.0"
 archunit = "1.4.1"
 spring-modulith = "2.1.1"
 testcontainers = "1.21.3"
@@ -30,24 +35,37 @@ archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref
 spring-modulith-core = { module = "org.springframework.modulith:spring-modulith-core", version.ref = "spring-modulith" }
 spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-starter-data-jdbc-test = { module = "org.springframework.boot:spring-boot-starter-data-jdbc-test" }
 spring-boot-starter-data-redis = { module = "org.springframework.boot:spring-boot-starter-data-redis" }
-spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
-micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
+commons-pool2 = { module = "org.apache.commons:commons-pool2" }
+spring-boot-starter-data-redis-test = { module = "org.springframework.boot:spring-boot-starter-data-redis-test" }
 spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
+spring-boot-starter-aspectj = { module = "org.springframework.boot:spring-boot-starter-aspectj", version.ref = "spring-boot" }
+micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }
 flyway-core = { module = "org.flywaydb:flyway-core" }
 flyway-database-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+spring-boot-flyway = { module = "org.springframework.boot:spring-boot-flyway" }
 postgresql = { module = "org.postgresql:postgresql" }
 spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-boot-starter-webmvc-test" }
 httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuid-creator" }
 resilience4j-spring-boot4 = { module = "io.github.resilience4j:resilience4j-spring-boot4", version.ref = "resilience4j" }
+spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test", version.ref = "spring-modulith" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
+testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }
 error-prone-core = { module = "com.google.errorprone:error_prone_core", version.ref = "error-prone-core" }
+nullaway = { module = "com.uber.nullaway:nullaway", version.ref = "nullaway" }
+nullaway-gradle-plugin = { module = "net.ltgt.nullaway:net.ltgt.nullaway.gradle.plugin", version.ref = "nullaway-plugin" }
 
 [plugins]
 spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 error-prone = { id = "net.ltgt.errorprone", version.ref = "error-prone" }
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlint-gradle" }

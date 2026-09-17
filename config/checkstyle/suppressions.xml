@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions SYSTEM "suppressions.dtd">
+<suppressions>
+  <suppress checks="FileLength" files="src[/\\]test[/\\].*"/>
+</suppressions>

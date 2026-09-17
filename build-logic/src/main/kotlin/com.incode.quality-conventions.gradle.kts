@@ -1,17 +1,25 @@
+import net.ltgt.gradle.errorprone.errorprone
+import net.ltgt.gradle.nullaway.nullaway
+import org.gradle.api.artifacts.VersionCatalogsExtension
+import org.gradle.api.tasks.compile.JavaCompile
+import org.gradle.api.tasks.testing.Test
 import org.gradle.testing.jacoco.tasks.JacocoCoverageVerification
 import org.gradle.testing.jacoco.tasks.JacocoReport
-import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.gradle.api.tasks.testing.Test
 
 plugins {
   checkstyle
   jacoco
   id("com.diffplug.spotless")
   id("net.ltgt.errorprone")
+  id("net.ltgt.nullaway")
 }
 
 val jacocoArtifactDirectory = layout.buildDirectory.dir("reports/jacoco")
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val buildLogicCheckReference =
+  gradle.includedBuilds
+    .firstOrNull { includedBuild -> includedBuild.projectDir == rootProject.file("build-logic") }
+    ?.task(":check")
 
 jacoco { reportsDirectory.set(jacocoArtifactDirectory) }
 checkstyle { toolVersion = libsCatalog.findVersion("checkstyle").get().requiredVersion }
@@ -20,13 +28,29 @@ spotless {
     googleJavaFormat(libsCatalog.findVersion("google-java-format").get().requiredVersion)
     removeUnusedImports()
   }
-  kotlinGradle { ktlint() }
+  kotlinGradle { ktlint(libsCatalog.findVersion("ktlint").get().requiredVersion) }
 }
 
-tasks.matching { task ->
-  task.name.startsWith("checkstyle") || task.name.startsWith("jacoco")
-}.configureEach {
+nullaway {
+  annotatedPackages.add("com.incode")
+}
+
+tasks.named<JavaCompile>("compileJava") {
+  options.compilerArgs.add("-XDaddTypeAnnotationsToSymbol=true")
+  options.errorprone.nullaway { error() }
+}
+
+tasks
+  .matching { task ->
+    task.name.startsWith("checkstyle") || task.name.startsWith("jacoco")
+  }.configureEach {
+    group = "quality"
+  }
+
+tasks.register("buildLogicCheck") {
   group = "quality"
+  description = "Checks the service-owned Gradle convention plugins."
+  buildLogicCheckReference?.let { dependsOn(it) }
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
@@ -36,7 +60,6 @@ tasks.named<JacocoReport>("jacocoTestReport") {
       classDirectories.files.map { directory ->
         fileTree(directory) {
           exclude(
-            "com/incode/verification/adapter/config/**",
             "com/incode/verification/adapter/out/**",
           )
         }
@@ -57,7 +80,6 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
       classDirectories.files.map { directory ->
         fileTree(directory) {
           exclude(
-            "com/incode/verification/adapter/config/**",
             "com/incode/verification/adapter/out/**",
           )
         }
@@ -89,6 +111,7 @@ tasks.register("qualityGate") {
     "jacocoTestCoverageVerification",
     "openApiValidate",
   )
+  dependsOn("buildLogicCheck")
 }
 
 tasks.register("verifyFinalGates") {

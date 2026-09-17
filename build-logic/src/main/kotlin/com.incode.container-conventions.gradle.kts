@@ -1,21 +1,25 @@
-import java.time.Duration
 import org.gradle.api.plugins.JavaPluginExtension
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
+import java.time.Duration
 
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
 val configuredImageName =
   providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
 val publishImage =
-  providers.gradleProperty("publishImage").map { value ->
-    value.toBooleanStrictOrNull() ?: error("publishImage must be true or false")
-  }.orElse(false)
+  providers
+    .gradleProperty("publishImage")
+    .map { value ->
+      value.toBooleanStrictOrNull() ?: error("publishImage must be true or false")
+    }.orElse(false)
 val configuredImagePlatform =
-  providers.gradleProperty("imagePlatform").map { platform ->
-    require(platform.matches(Regex("^linux/(amd64|arm64)$"))) {
-      "imagePlatform must be linux/amd64 or linux/arm64"
-    }
-    platform
-  }.orElse("linux/amd64")
+  providers
+    .gradleProperty("imagePlatform")
+    .map { platform ->
+      require(platform.matches(Regex("^linux/(amd64|arm64)$"))) {
+        "imagePlatform must be linux/amd64 or linux/arm64"
+      }
+      platform
+    }.orElse("linux/amd64")
 val paketoBuilderImage =
   providers.gradleProperty("paketoBuilderImage").map { image ->
     requireDigestImage("paketoBuilderImage", image)
@@ -55,9 +59,16 @@ val validatedVariant =
   }
 val imageArchitecture =
   providers.environmentVariable("DOCKER_DEFAULT_PLATFORM").orElse(
-    providers.systemProperty("os.arch").orElse("unknown")
+    providers.systemProperty("os.arch").orElse("unknown"),
   )
 val javaExtension = extensions.getByType<JavaPluginExtension>()
+val imageLabels =
+  listOf(
+    "org.opencontainers.image.title=company-check-service",
+    "org.opencontainers.image.source=https://github.com/incode/company-check-service",
+    "org.opencontainers.image.version=${project.version}",
+    "org.opencontainers.image.vendor=Incode",
+  ).joinToString(",")
 
 tasks.named<BootBuildImage>("bootBuildImage") {
   group = "containers"
@@ -77,13 +88,17 @@ tasks.named<BootBuildImage>("bootBuildImage") {
   runImage.set(paketoRunImage)
   environment.put(
     "BP_IMAGE_LABELS",
+    providers.provider { imageLabels },
+  )
+  environment.put(
+    "BP_JVM_VERSION",
     providers.provider {
-      "org.opencontainers.image.title=company-check-service,org.opencontainers.image.source=https://github.com/incode/company-check-service,org.opencontainers.image.version=${project.version},org.opencontainers.image.vendor=Incode"
+      javaExtension.toolchain.languageVersion
+        .get()
+        .asInt()
+        .toString()
     },
   )
-  environment.put("BP_JVM_VERSION", providers.provider {
-    javaExtension.toolchain.languageVersion.get().asInt().toString()
-  })
   environment.put("BPE_DEFAULT_BPL_JVM_HEAD_ROOM", providers.provider { "10" })
   environment.put("BP_NATIVE_IMAGE", validatedVariant.map { (it == "native").toString() })
   environment.putAll(
@@ -115,7 +130,10 @@ tasks.register("image") {
   inputs.file(layout.projectDirectory.file("settings-gradle.lockfile"))
 }
 
-fun requireDigestImage(propertyName: String, image: String): String {
+fun requireDigestImage(
+  propertyName: String,
+  image: String,
+): String {
   require(image.matches(Regex("^[^@\\s]+@sha256:[0-9a-fA-F]{64}$"))) {
     "$propertyName must be an immutable image reference ending in @sha256:<64 hex digits>"
   }
@@ -134,7 +152,10 @@ val composeImageVariables =
 tasks.register("composeDigestCheck") {
   group = "containers"
   description = "Checks that all Compose image inputs are immutable digest references."
-  inputs.files(rootProject.layout.projectDirectory.file("../compose.yaml"))
+  inputs.files(
+    listOf("compose.yaml", "compose.single.yaml", "compose.distributed.yaml")
+      .map { rootProject.layout.projectDirectory.file("../$it") },
+  )
   doLast {
     composeImageVariables.forEach { variable ->
       val value =
@@ -146,18 +167,24 @@ tasks.register("composeDigestCheck") {
 }
 
 val imageSmokeTimeoutSeconds =
-  providers.gradleProperty("imageSmokeTimeoutSeconds").map { value ->
-    value.toLongOrNull()?.also { timeout ->
-      require(timeout in 1..120) { "imageSmokeTimeoutSeconds must be between 1 and 120" }
-    } ?: error("imageSmokeTimeoutSeconds must be an integer")
-  }.orElse(15)
+  providers
+    .gradleProperty("imageSmokeTimeoutSeconds")
+    .map { value ->
+      value.toLongOrNull()?.also { timeout ->
+        require(timeout in 1..120) { "imageSmokeTimeoutSeconds must be between 1 and 120" }
+      } ?: error("imageSmokeTimeoutSeconds must be an integer")
+    }.orElse(15)
 
 fun docker(arguments: List<String>): String {
   val process =
     ProcessBuilder(listOf("docker") + arguments)
       .redirectErrorStream(true)
       .start()
-  val output = process.inputStream.readBytes().toString(Charsets.UTF_8).trim()
+  val output =
+    process.inputStream
+      .readBytes()
+      .toString(Charsets.UTF_8)
+      .trim()
   check(process.waitFor() == 0) {
     "docker ${arguments.joinToString(" ")} failed: $output"
   }
