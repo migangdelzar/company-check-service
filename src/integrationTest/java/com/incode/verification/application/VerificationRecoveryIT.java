@@ -2,7 +2,7 @@ package com.incode.verification.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.incode.verification.adapter.out.expiration.VerificationExpirationScheduler;
+import com.incode.verification.adapter.in.scheduling.VerificationExpirationScheduler;
 import com.incode.verification.application.port.in.ExpireVerificationsUseCase;
 import java.time.Clock;
 import java.time.Instant;

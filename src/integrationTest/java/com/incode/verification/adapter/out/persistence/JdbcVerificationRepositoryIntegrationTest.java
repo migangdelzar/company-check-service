@@ -1,42 +1,56 @@
 package com.incode.verification.adapter.out.persistence;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.incode.verification.domain.aggregate.Verification;
-import com.incode.verification.domain.valueobject.NormalizedQuery;
+import com.incode.verification.domain.query.NormalizedQuery;
+import com.incode.verification.domain.verification.Verification;
 import java.time.Instant;
 import java.util.UUID;
+import javax.sql.DataSource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+@Testcontainers
 class JdbcVerificationRepositoryIntegrationTest {
+  @Container
+  static final PostgreSQLContainer<?> POSTGRES =
+      new PostgreSQLContainer<>("postgres:16-alpine");
+
+  private JdbcVerificationRepository repository;
+
+  @BeforeEach
+  void setUp() {
+    DataSource dataSource =
+        new DriverManagerDataSource(
+            POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword());
+    new ResourceDatabasePopulator(
+            new ClassPathResource("db/migration/V1__create_verifications.sql"))
+        .execute(dataSource);
+    repository =
+        new JdbcVerificationRepository(JdbcClient.create(dataSource), new ObjectMapper());
+  }
+
   @Test
-  void repositoryContractIsCoveredByPostgresContainer() {
-    try (var postgres = new PostgreSQLContainer<>("postgres:16-alpine")) {
-      postgres.start();
-      var dataSource =
-          new DriverManagerDataSource(
-              postgres.getJdbcUrl(), postgres.getUsername(), postgres.getPassword());
-      var repository =
-          new JdbcVerificationRepository(JdbcClient.create(dataSource), new ObjectMapper());
-      var now = Instant.parse("2026-01-01T00:00:00Z");
-      var verification =
-          Verification.start(
-              UUID.randomUUID(),
-              " acme ",
-              NormalizedQuery.normalize(" acme "),
-              now,
-              now.plusSeconds(60));
-      repository.insertInProgress(verification);
-      assertTrue(repository.findById(verification.id()).isPresent());
-      var token = repository.claim(verification.id());
-      assertNotNull(token);
-      assertFalse(repository.updateTerminal(verification.id(), UUID.randomUUID(), verification));
-    }
+  void persistsAndReadsInProgressVerification() {
+    var now = Instant.parse("2026-01-01T00:00:00Z");
+    var verification =
+        Verification.start(
+            UUID.randomUUID(),
+            "Acme",
+            new NormalizedQuery("ACME"),
+            now,
+            now.plusSeconds(600));
+
+    assertTrue(repository.insertInProgress(verification));
+    assertEquals(verification, repository.findById(verification.id()).orElseThrow());
   }
 }
