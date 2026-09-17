@@ -25,6 +25,7 @@ class ProviderRuntimeHintsTest {
     var hint = hints.reflection().getTypeHint(type);
     assertNotNull(hint);
     assertTrue(hint.getMemberCategories().contains(MemberCategory.INVOKE_DECLARED_CONSTRUCTORS));
+    assertTrue(hint.getMemberCategories().contains(MemberCategory.ACCESS_DECLARED_FIELDS));
   }
 
   private static void assertResponseHint(RuntimeHints hints, Class<?> responseType) {

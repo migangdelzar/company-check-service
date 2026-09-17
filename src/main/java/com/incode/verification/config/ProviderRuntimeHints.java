@@ -13,12 +13,15 @@ public final class ProviderRuntimeHints implements RuntimeHintsRegistrar {
     hints
         .reflection()
         .registerType(
-            ProviderEndpointProperties.class, MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+            ProviderEndpointProperties.class,
+            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+            MemberCategory.ACCESS_DECLARED_FIELDS);
     hints
         .reflection()
         .registerType(
             ProviderProperties.HttpPoolProperties.class,
-            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS);
+            MemberCategory.INVOKE_DECLARED_CONSTRUCTORS,
+            MemberCategory.ACCESS_DECLARED_FIELDS);
     registerProviderResponse(hints, FreeCompanyResponse.class);
     registerProviderResponse(hints, PremiumCompanyResponse.class);
   }
