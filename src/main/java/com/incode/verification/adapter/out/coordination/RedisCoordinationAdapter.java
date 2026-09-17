@@ -1,11 +1,11 @@
 package com.incode.verification.adapter.out.coordination;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.incode.verification.configuration.CoordinationProperties;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.result.VerificationResult;
-import com.incode.verification.domain.query.NormalizedQuery;
+import com.incode.verification.configuration.CoordinationProperties;
 import com.incode.verification.domain.identity.UuidV7;
+import com.incode.verification.domain.query.NormalizedQuery;
 import io.micrometer.observation.annotation.Observed;
 import java.time.Duration;
 import java.util.Optional;
@@ -65,7 +65,9 @@ public class RedisCoordinationAdapter implements CoordinationPort {
     String cacheKey = keyForCache(query);
     try {
       long millis = ttlMillis(result);
-      redis.opsForValue().set(cacheKey, mapper.writeValueAsString(result), Duration.ofMillis(millis));
+      redis
+          .opsForValue()
+          .set(cacheKey, mapper.writeValueAsString(result), Duration.ofMillis(millis));
     } catch (Exception exception) {
       log.debug("Redis cache write unavailable; continuing with local cache", exception);
     }
@@ -117,5 +119,4 @@ public class RedisCoordinationAdapter implements CoordinationPort {
   private String keyForCache(NormalizedQuery query) {
     return properties.keyPrefix() + "cache:v1:" + query.value();
   }
-
 }

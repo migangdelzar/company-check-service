@@ -26,7 +26,8 @@ record VerificationEntity(
                 instanceof com.incode.verification.domain.verification.VerificationState.InProgress
             ? "IN_PROGRESS"
             : verification.state()
-                    instanceof com.incode.verification.domain.verification.VerificationState.Completed
+                    instanceof
+                    com.incode.verification.domain.verification.VerificationState.Completed
                 ? "COMPLETED"
                 : "FAILED",
         stateJson,

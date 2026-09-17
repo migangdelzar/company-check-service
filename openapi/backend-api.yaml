@@ -10,7 +10,7 @@ servers:
 security: []
 paths:
   /backend-service:
-    post:
+    get:
       operationId: startOrRetrieveVerification
       summary: Start or retrieve a verification
       description: >

@@ -20,6 +20,26 @@ val configuredImagePlatform =
       }
       platform
     }.orElse("linux/amd64")
+val paketoCacheVolumePrefix =
+  providers.gradleProperty("paketoCacheVolumePrefix").orElse("company-check-service").map { prefix ->
+    require(prefix.matches(Regex("^[a-z0-9][a-z0-9_.-]{0,62}$"))) {
+      "paketoCacheVolumePrefix must contain only lowercase letters, digits, dots, underscores, or hyphens"
+    }
+    prefix
+  }
+val paketoPullPolicy =
+  providers.gradleProperty("paketoPullPolicy").orElse("IF_NOT_PRESENT").map { policy ->
+    require(policy in setOf("ALWAYS", "IF_NOT_PRESENT", "NEVER")) {
+      "paketoPullPolicy must be ALWAYS, IF_NOT_PRESENT, or NEVER"
+    }
+    policy
+  }
+val cleanPaketoCache =
+  providers
+    .gradleProperty("cleanPaketoCache")
+    .map { value ->
+      value.toBooleanStrictOrNull() ?: error("cleanPaketoCache must be true or false")
+    }.orElse(false)
 val paketoBuilderImage =
   providers.gradleProperty("paketoBuilderImage").map { image ->
     requireDigestImage("paketoBuilderImage", image)
@@ -57,10 +77,6 @@ val validatedVariant =
     }
     variant
   }
-val imageArchitecture =
-  providers.environmentVariable("DOCKER_DEFAULT_PLATFORM").orElse(
-    providers.systemProperty("os.arch").orElse("unknown"),
-  )
 val javaExtension = extensions.getByType<JavaPluginExtension>()
 val imageLabels =
   listOf(
@@ -75,11 +91,30 @@ tasks.named<BootBuildImage>("bootBuildImage") {
   imageName.set(configuredImageName)
   publish.set(publishImage)
   imagePlatform.set(configuredImagePlatform)
+  setPullPolicy(paketoPullPolicy.get())
+  cleanCache.set(cleanPaketoCache)
+  buildCache {
+    volume {
+      name.set(paketoCacheVolumePrefix.map { "$it.build" })
+    }
+  }
+  launchCache {
+    volume {
+      name.set(paketoCacheVolumePrefix.map { "$it.launch" })
+    }
+  }
+  buildWorkspace {
+    volume {
+      name.set(paketoCacheVolumePrefix.map { "$it.workspace" })
+    }
+  }
   inputs.property("imageVariant", validatedVariant)
   inputs.property("publishImage", publishImage)
   inputs.property("imagePlatform", configuredImagePlatform)
+  inputs.property("paketoCacheVolumePrefix", paketoCacheVolumePrefix)
+  inputs.property("paketoPullPolicy", paketoPullPolicy)
+  inputs.property("cleanPaketoCache", cleanPaketoCache)
   inputs.property("nativeOptimization", nativeOptimization)
-  inputs.property("imageArchitecture", imageArchitecture)
   inputs.property("paketoBuilderImage", paketoBuilderImage)
   inputs.property("paketoRunImage", paketoRunImage)
   inputs.file(layout.projectDirectory.file("gradle.lockfile"))
@@ -122,8 +157,10 @@ tasks.register("image") {
   inputs.property("imageName", configuredImageName)
   inputs.property("publishImage", publishImage)
   inputs.property("imagePlatform", configuredImagePlatform)
+  inputs.property("paketoCacheVolumePrefix", paketoCacheVolumePrefix)
+  inputs.property("paketoPullPolicy", paketoPullPolicy)
+  inputs.property("cleanPaketoCache", cleanPaketoCache)
   inputs.property("nativeOptimization", nativeOptimization)
-  inputs.property("imageArchitecture", imageArchitecture)
   inputs.property("paketoBuilderImage", paketoBuilderImage)
   inputs.property("paketoRunImage", paketoRunImage)
   inputs.file(layout.projectDirectory.file("gradle.lockfile"))

@@ -10,10 +10,10 @@ spring:
     hikari:
       maximum-pool-size: 16
       minimum-idle: 4
-      connection-timeout: 250ms
-      validation-timeout: 100ms
-      idle-timeout: 10m
-      max-lifetime: 25m
+      connection-timeout: 250
+      validation-timeout: 250
+      idle-timeout: 600000
+      max-lifetime: 1500000
 verification:
   lifetime: 10m
   database:
@@ -25,6 +25,9 @@ verification:
       max-delay: 500ms
   expiration:
     reaper-delay: 1000ms
+    lock:
+      key: "company-check:expiration:lock"
+      ttl: 30s
   providers:
     attempt-timeout: 500ms
     pool:

@@ -61,5 +61,4 @@ public record VerificationResponse(
     }
     return List.copyOf(otherResults);
   }
-
 }

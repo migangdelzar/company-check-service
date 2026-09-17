@@ -77,5 +77,4 @@ public final class RestClientProviderAdapter implements ProviderLookupPort {
     }
     return false;
   }
-
 }

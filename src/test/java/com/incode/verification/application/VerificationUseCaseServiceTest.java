@@ -4,25 +4,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.incode.verification.configuration.VerificationProperties;
 import com.incode.verification.application.port.in.GetVerificationUseCase;
-import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationCommand;
+import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.result.VerificationResult;
 import com.incode.verification.application.service.CoordinationUnavailableException;
-import com.incode.verification.application.service.ProviderSubmissionException;
-import com.incode.verification.application.service.VerificationStoreService;
 import com.incode.verification.application.service.GetVerificationService;
 import com.incode.verification.application.service.ProviderResolutionService;
-import com.incode.verification.application.service.VerificationRecoveryService;
+import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.StartVerificationService;
-import com.incode.verification.domain.verification.Verification;
+import com.incode.verification.application.service.VerificationRecoveryService;
+import com.incode.verification.application.service.VerificationStoreService;
+import com.incode.verification.configuration.VerificationProperties;
 import com.incode.verification.domain.provider.ProviderFailure;
 import com.incode.verification.domain.provider.ProviderResult;
 import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.verification.VerificationStatus;
 import java.time.Clock;
 import java.time.Duration;
@@ -64,7 +64,8 @@ class VerificationUseCaseServiceTest {
             provider,
             Clock.fixed(now, ZoneOffset.UTC),
             Duration.ofMinutes(1));
-    VerificationResult view = service.start(new StartVerificationCommand(UUID.randomUUID(), " acme "));
+    VerificationResult view =
+        service.start(new StartVerificationCommand(UUID.randomUUID(), " acme "));
     assertEquals(VerificationStatus.COMPLETED, view.status());
     assertThrows(
         UnsupportedOperationException.class, () -> view.otherResults().add(view.company()));
@@ -171,7 +172,7 @@ class VerificationUseCaseServiceTest {
             now,
             now.plusSeconds(60),
             VerificationStatus.COMPLETED,
-                        new com.incode.verification.domain.company.Company(
+            new com.incode.verification.domain.company.Company(
                 "A", "A", LocalDate.parse("2020-01-01"), "x", true),
             List.of(),
             ProviderType.PREMIUM,
@@ -243,7 +244,7 @@ class VerificationUseCaseServiceTest {
             now,
             now.plusSeconds(60)));
     var company =
-                        new com.incode.verification.domain.company.Company(
+        new com.incode.verification.domain.company.Company(
             "A", "A", LocalDate.parse("2020-01-01"), "x", true);
     var cached =
         new VerificationResult(
@@ -351,7 +352,7 @@ class VerificationUseCaseServiceTest {
         Verification.start(
             id,
             "ACME",
-                new com.incode.verification.domain.query.NormalizedQuery("ACME"),
+            new com.incode.verification.domain.query.NormalizedQuery("ACME"),
             now,
             now.plusSeconds(60)));
     var shared = completed(UUID.randomUUID(), "ACME");
@@ -427,7 +428,10 @@ class VerificationUseCaseServiceTest {
       Duration lifetime) {
     var terminal =
         new VerificationStoreService(
-            repository, coordination, new RetryTemplate(), new TransactionTemplate(noOpTransactions()));
+            repository,
+            coordination,
+            new RetryTemplate(),
+            new TransactionTemplate(noOpTransactions()));
     var recovery = new VerificationRecoveryService(repository, coordination, terminal);
     return new Services(
         new StartVerificationService(
@@ -513,7 +517,8 @@ class VerificationUseCaseServiceTest {
     }
 
     @Override
-    public Optional<VerificationResult> get(com.incode.verification.domain.query.NormalizedQuery query) {
+    public Optional<VerificationResult> get(
+        com.incode.verification.domain.query.NormalizedQuery query) {
       return Optional.empty();
     }
 
@@ -537,7 +542,8 @@ class VerificationUseCaseServiceTest {
     }
 
     @Override
-    public Optional<VerificationResult> get(com.incode.verification.domain.query.NormalizedQuery query) {
+    public Optional<VerificationResult> get(
+        com.incode.verification.domain.query.NormalizedQuery query) {
       return Optional.of(cached);
     }
   }

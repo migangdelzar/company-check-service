@@ -6,8 +6,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -24,8 +24,7 @@ public class BackendServiceController {
       @Valid @ModelAttribute BackendServiceRequest request) {
     var view =
         startVerification.start(
-            new StartVerificationCommand(
-                request.verificationId(), request.query()));
+            new StartVerificationCommand(request.verificationId(), request.query()));
     return ResponseEntity.ok()
         .cacheControl(CacheControl.noStore())
         .body(VerificationResponse.from(view));

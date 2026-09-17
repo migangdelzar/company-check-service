@@ -18,12 +18,13 @@ import org.springframework.web.client.RestClient;
 @ApplicationModuleTest(classes = CompanyCheckApplication.class, module = "verification")
 @TestPropertySource(
     properties = {
-        "spring.main.web-application-type=none",
-        "spring.autoconfigure.exclude="
-            + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
-            + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration,"
-            + "org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration,"
-            + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"})
+      "spring.main.web-application-type=none",
+      "spring.autoconfigure.exclude="
+          + "org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration,"
+          + "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration,"
+          + "org.springframework.boot.data.redis.autoconfigure.DataRedisRepositoriesAutoConfiguration,"
+          + "org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration"
+    })
 class DomainApplicationModuleTest {
   @Autowired private ApplicationContext context;
 
@@ -35,9 +36,11 @@ class DomainApplicationModuleTest {
 
   @MockitoBean private PlatformTransactionManager transactionManager;
 
-  @MockitoBean(name = "freeProviderClient") private RestClient freeProviderClient;
+  @MockitoBean(name = "freeProviderClient")
+  private RestClient freeProviderClient;
 
-  @MockitoBean(name = "premiumProviderClient") private RestClient premiumProviderClient;
+  @MockitoBean(name = "premiumProviderClient")
+  private RestClient premiumProviderClient;
 
   @Test
   void bootsTheDomainModuleInIsolation() {

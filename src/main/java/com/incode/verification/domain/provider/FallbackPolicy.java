@@ -1,6 +1,5 @@
 package com.incode.verification.domain.provider;
 
-
 public final class FallbackPolicy {
   private FallbackPolicy() {}
 

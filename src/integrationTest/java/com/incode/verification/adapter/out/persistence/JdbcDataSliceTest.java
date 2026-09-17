@@ -25,8 +25,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Import(PersistenceConfiguration.class)
 class JdbcDataSliceTest {
   @Container
-  static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
   @Autowired private JdbcClient jdbc;
 

@@ -20,19 +20,27 @@ val buildLogicCheckReference =
   gradle.includedBuilds
     .firstOrNull { includedBuild -> includedBuild.projectDir == rootProject.file("build-logic") }
     ?.task(":check")
+val unitTest = tasks.named<Test>("test")
 
 jacoco { reportsDirectory.set(jacocoArtifactDirectory) }
 checkstyle { toolVersion = libsCatalog.findVersion("checkstyle").get().requiredVersion }
 spotless {
   java {
+    target("src/**/*.java")
     googleJavaFormat(libsCatalog.findVersion("google-java-format").get().requiredVersion)
     removeUnusedImports()
+    trimTrailingWhitespace()
+    endWithNewline()
   }
   kotlinGradle { ktlint(libsCatalog.findVersion("ktlint").get().requiredVersion) }
 }
 
 nullaway {
   annotatedPackages.add("com.incode")
+}
+
+tasks.withType<JavaCompile>().configureEach {
+  options.encoding = "UTF-8"
 }
 
 tasks.named<JavaCompile>("compileJava") {
@@ -54,7 +62,7 @@ tasks.register("buildLogicCheck") {
 }
 
 tasks.named<JacocoReport>("jacocoTestReport") {
-  dependsOn(tasks.named<Test>("test"))
+  dependsOn(unitTest)
   classDirectories.setFrom(
     files(
       classDirectories.files.map { directory ->
@@ -74,7 +82,7 @@ tasks.named<JacocoReport>("jacocoTestReport") {
 }
 
 tasks.withType<JacocoCoverageVerification>().configureEach {
-  dependsOn(tasks.named<Test>("test"))
+  dependsOn(unitTest)
   classDirectories.setFrom(
     files(
       classDirectories.files.map { directory ->
@@ -98,24 +106,27 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
   }
 }
 
-tasks.register("qualityGate") {
-  group = "quality"
-  description = "Runs the complete service quality gate."
+tasks.named("check") {
   dependsOn(
     "spotlessCheck",
     "checkstyleMain",
     "checkstyleTest",
-    "check",
+    "checkstyleTestFixtures",
     "test",
     "jacocoTestReport",
     "jacocoTestCoverageVerification",
-    "openApiValidate",
   )
-  dependsOn("buildLogicCheck")
 }
+
+val qualityGate =
+  tasks.register("qualityGate") {
+    group = "quality"
+    description = "Runs the complete service quality gate."
+    dependsOn("check", "openApiValidate", "buildLogicCheck")
+  }
 
 tasks.register("verifyFinalGates") {
   group = "quality"
   description = "Runs all service-owned final gates."
-  dependsOn("qualityGate", "openApiValidate")
+  dependsOn(qualityGate)
 }

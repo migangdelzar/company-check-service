@@ -110,6 +110,68 @@ class GradleStructureTest {
     assertTrue(rootBuild.contains("libs.versions.java"));
   }
 
+  @Test
+  void configuresBuildAndConfigurationCachesExplicitly() throws IOException {
+    String settings = read(SERVICE_ROOT.resolve("settings.gradle.kts"));
+    String properties = read(SERVICE_ROOT.resolve("gradle.properties"));
+    String example = read(SERVICE_ROOT.resolve("gradle.properties.example"));
+
+    assertTrue(settings.contains("buildCache"));
+    assertTrue(settings.contains(".gradle/build-cache"));
+    assertTrue(settings.contains("remoteBuildCacheUrl"));
+    assertTrue(properties.contains("org.gradle.configuration-cache.problems=fail"));
+    assertTrue(example.contains("remoteBuildCacheUrl"));
+    assertTrue(example.contains("localBuildCache"));
+  }
+
+  @Test
+  void pinsGradleWrapperDistributionChecksum() throws IOException {
+    String wrapper = read(SERVICE_ROOT.resolve("gradle/wrapper/gradle-wrapper.properties"));
+
+    assertTrue(wrapper.contains("distributionSha256Sum="));
+  }
+
+  @Test
+  void configuresStablePaketoCachesAndSingleFinalGate() throws IOException {
+    String container =
+        read(
+            BUILD_LOGIC_ROOT.resolve(
+                "src/main/kotlin/com.incode.container-conventions.gradle.kts"));
+    String quality =
+        read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.quality-conventions.gradle.kts"));
+
+    assertTrue(container.contains("paketoCacheVolumePrefix"));
+    assertTrue(container.contains("buildCache"));
+    assertTrue(container.contains("launchCache"));
+    assertTrue(container.contains("buildWorkspace"));
+    assertTrue(container.contains("paketoPullPolicy"));
+    assertTrue(quality.contains("tasks.named(\"check\")"));
+    assertTrue(quality.contains("verifyFinalGates"));
+  }
+
+  @Test
+  void forwardsExplicitTestcontainersDockerHostToIntegrationTests() throws IOException {
+    String testing =
+        read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.testing-conventions.gradle.kts"));
+
+    assertTrue(testing.contains("testcontainersDockerHost"));
+    assertTrue(testing.contains("environment(\"DOCKER_HOST\""));
+    assertTrue(testing.contains("systemProperty(\"docker.host\""));
+    assertTrue(testing.contains("testcontainersDockerSocketOverride"));
+    assertTrue(testing.contains("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE"));
+  }
+
+  @Test
+  void configuresJavaSpotlessWithTwoSpaceGoogleFormatting() throws IOException {
+    String quality =
+        read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.quality-conventions.gradle.kts"));
+
+    assertTrue(quality.contains("target(\"src/**/*.java\")"));
+    assertTrue(quality.contains("googleJavaFormat"));
+    assertTrue(quality.contains("trimTrailingWhitespace()"));
+    assertTrue(quality.contains("endWithNewline()"));
+  }
+
   private String read(Path path) throws IOException {
     return Files.readString(path);
   }

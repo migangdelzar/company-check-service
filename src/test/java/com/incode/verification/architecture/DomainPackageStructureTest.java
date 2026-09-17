@@ -8,8 +8,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 class DomainPackageStructureTest {
-  private static final Path DOMAIN_ROOT =
-      Path.of("src/main/java/com/incode/verification/domain");
+  private static final Path DOMAIN_ROOT = Path.of("src/main/java/com/incode/verification/domain");
 
   @Test
   void groupsDomainClassesByBusinessConcept() {

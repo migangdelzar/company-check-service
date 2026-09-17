@@ -1,12 +1,12 @@
 package com.incode.verification.adapter.in.web;
 
 import com.incode.verification.application.port.out.InboundRateLimiter;
-import java.io.IOException;
-import java.time.Duration;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.time.Duration;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -38,7 +38,8 @@ public final class InboundRateLimitFilter extends OncePerRequestFilter {
       return;
     }
 
-    response.setStatus(decision.status() == InboundRateLimiter.Decision.Status.REJECTED ? 429 : 503);
+    response.setStatus(
+        decision.status() == InboundRateLimiter.Decision.Status.REJECTED ? 429 : 503);
     response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
     var retryAfter = retryAfterSeconds(decision.retryAfter());
     if (retryAfter > 0) {

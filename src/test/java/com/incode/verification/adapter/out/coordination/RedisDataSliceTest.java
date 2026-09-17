@@ -9,8 +9,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 
-@DataRedisTest(
-    properties = {"spring.data.redis.host=localhost", "spring.data.redis.port=6379"})
+@DataRedisTest(properties = {"spring.data.redis.host=localhost", "spring.data.redis.port=6379"})
 @ActiveProfiles("distributed")
 class RedisDataSliceTest {
   @Autowired private RedisConnectionFactory connectionFactory;

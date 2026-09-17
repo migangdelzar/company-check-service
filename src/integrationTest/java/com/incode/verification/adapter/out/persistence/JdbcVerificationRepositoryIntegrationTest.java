@@ -22,8 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @Testcontainers
 class JdbcVerificationRepositoryIntegrationTest {
   @Container
-  static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
   private JdbcVerificationRepository repository;
 
@@ -35,8 +34,7 @@ class JdbcVerificationRepositoryIntegrationTest {
     new ResourceDatabasePopulator(
             new ClassPathResource("db/migration/V1__create_verifications.sql"))
         .execute(dataSource);
-    repository =
-        new JdbcVerificationRepository(JdbcClient.create(dataSource), new ObjectMapper());
+    repository = new JdbcVerificationRepository(JdbcClient.create(dataSource), new ObjectMapper());
   }
 
   @Test
@@ -44,11 +42,7 @@ class JdbcVerificationRepositoryIntegrationTest {
     var now = Instant.parse("2026-01-01T00:00:00Z");
     var verification =
         Verification.start(
-            UUID.randomUUID(),
-            "Acme",
-            new NormalizedQuery("ACME"),
-            now,
-            now.plusSeconds(600));
+            UUID.randomUUID(), "Acme", new NormalizedQuery("ACME"), now, now.plusSeconds(600));
 
     assertTrue(repository.insertInProgress(verification));
     assertEquals(verification, repository.findById(verification.id()).orElseThrow());

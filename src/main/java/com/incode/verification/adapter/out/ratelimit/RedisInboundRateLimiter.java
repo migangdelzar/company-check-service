@@ -22,8 +22,7 @@ public final class RedisInboundRateLimiter implements InboundRateLimiter {
   private final StringRedisTemplate redis;
   private final InboundRateLimitProperties properties;
 
-  public RedisInboundRateLimiter(
-      StringRedisTemplate redis, InboundRateLimitProperties properties) {
+  public RedisInboundRateLimiter(StringRedisTemplate redis, InboundRateLimitProperties properties) {
     this.redis = redis;
     this.properties = properties;
   }

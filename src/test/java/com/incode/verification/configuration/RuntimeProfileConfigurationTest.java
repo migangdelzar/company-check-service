@@ -6,21 +6,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.adapter.out.coordination.LocalCoordinationAdapter;
+import com.incode.verification.adapter.out.coordination.LocalExpirationLock;
 import com.incode.verification.adapter.out.coordination.RedisCoordinationAdapter;
+import com.incode.verification.adapter.out.coordination.RedisExpirationLock;
 import com.incode.verification.adapter.out.provider.ProviderEndpointProperties;
 import com.incode.verification.adapter.out.provider.ProviderProperties;
 import com.incode.verification.adapter.out.ratelimit.ProviderRateLimiter;
 import com.incode.verification.adapter.out.ratelimit.RedisInboundRateLimiter;
 import com.incode.verification.adapter.out.ratelimit.RedisProviderRateLimiter;
 import com.incode.verification.adapter.out.ratelimit.Resilience4jInboundRateLimiter;
-import com.incode.verification.application.port.out.InboundRateLimiter;
 import com.incode.verification.application.port.out.CoordinationPort;
+import com.incode.verification.application.port.out.ExpirationLock;
+import com.incode.verification.application.port.out.InboundRateLimiter;
 import com.incode.verification.application.port.out.ProviderLookupPort;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Set;
 import java.util.stream.Collectors;
-import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.env.YamlPropertySourceLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -41,6 +44,7 @@ class RuntimeProfileConfigurationTest {
             LocalBeans.class,
             ProviderBeans.class,
             LocalCoordinationConfiguration.class,
+            ExpirationLockConfiguration.class,
             CoordinationConfiguration.class,
             InboundRateLimitConfiguration.class,
             ProviderResilienceConfiguration.class,
@@ -58,6 +62,7 @@ class RuntimeProfileConfigurationTest {
               assertTrue(context.getBeansOfType(ProviderRateLimiter.class).isEmpty());
               assertInstanceOf(
                   Resilience4jInboundRateLimiter.class, context.getBean(InboundRateLimiter.class));
+              assertInstanceOf(LocalExpirationLock.class, context.getBean(ExpirationLock.class));
               assertTrue(context.getBeansOfType(RedisInboundRateLimiter.class).isEmpty());
               assertEquals(Set.of("FreeProvider", "PremiumProvider"), providerTypes(context));
             });
@@ -71,6 +76,7 @@ class RuntimeProfileConfigurationTest {
             ProviderBeans.class,
             CoordinationConfiguration.class,
             LocalCoordinationConfiguration.class,
+            ExpirationLockConfiguration.class,
             InboundRateLimitConfiguration.class,
             ProviderResilienceConfiguration.class,
             DistributedProviderResilienceConfiguration.class)
@@ -88,6 +94,7 @@ class RuntimeProfileConfigurationTest {
                   RedisProviderRateLimiter.class, context.getBean(ProviderRateLimiter.class));
               assertInstanceOf(
                   RedisInboundRateLimiter.class, context.getBean(InboundRateLimiter.class));
+              assertInstanceOf(RedisExpirationLock.class, context.getBean(ExpirationLock.class));
               assertTrue(context.getBeansOfType(Resilience4jInboundRateLimiter.class).isEmpty());
               assertEquals(
                   Set.of("DistributedFreeProvider", "DistributedPremiumProvider"),
@@ -99,10 +106,9 @@ class RuntimeProfileConfigurationTest {
   void singleNodeConfigurationExcludesRedisAutoConfiguration() throws IOException {
     var source =
         new YamlPropertySourceLoader()
-            .load("single-node", new ClassPathResource("application-single-node.yml"))
-            .stream()
-            .findFirst()
-            .orElseThrow();
+            .load("single-node", new ClassPathResource("application-single-node.yml")).stream()
+                .findFirst()
+                .orElseThrow();
 
     assertEquals(
         "org.springframework.boot.data.redis.autoconfigure.DataRedisAutoConfiguration",
@@ -116,10 +122,9 @@ class RuntimeProfileConfigurationTest {
   void distributedProfileEnablesTheSharedRedisConnectionPool() throws IOException {
     var source =
         new YamlPropertySourceLoader()
-            .load("distributed", new ClassPathResource("application-distributed.yml"))
-            .stream()
-            .findFirst()
-            .orElseThrow();
+            .load("distributed", new ClassPathResource("application-distributed.yml")).stream()
+                .findFirst()
+                .orElseThrow();
 
     assertEquals(true, source.getProperty("spring.data.redis.lettuce.pool.enabled"));
     assertEquals(32, source.getProperty("spring.data.redis.lettuce.pool.max-active"));
@@ -134,19 +139,21 @@ class RuntimeProfileConfigurationTest {
   void defaultProfileUsesBoundedJdbcConnectionPool() throws IOException {
     var source =
         new YamlPropertySourceLoader()
-            .load("application", new ClassPathResource("application.yml"))
-            .stream()
-            .findFirst()
-            .orElseThrow();
+            .load("application", new ClassPathResource("application.yml")).stream()
+                .findFirst()
+                .orElseThrow();
 
     assertEquals(16, source.getProperty("spring.datasource.hikari.maximum-pool-size"));
     assertEquals(4, source.getProperty("spring.datasource.hikari.minimum-idle"));
-    assertEquals("250ms", source.getProperty("spring.datasource.hikari.connection-timeout"));
-    assertEquals("100ms", source.getProperty("spring.datasource.hikari.validation-timeout"));
-    assertEquals("10m", source.getProperty("spring.datasource.hikari.idle-timeout"));
-    assertEquals("25m", source.getProperty("spring.datasource.hikari.max-lifetime"));
+    assertEquals(250, source.getProperty("spring.datasource.hikari.connection-timeout"));
+    assertEquals(250, source.getProperty("spring.datasource.hikari.validation-timeout"));
+    assertEquals(600000, source.getProperty("spring.datasource.hikari.idle-timeout"));
+    assertEquals(1500000, source.getProperty("spring.datasource.hikari.max-lifetime"));
     assertEquals(true, source.getProperty("spring.threads.virtual.enabled"));
     assertEquals(true, source.getProperty("spring.main.keep-alive"));
+    assertEquals(
+        "company-check:expiration:lock", source.getProperty("verification.expiration.lock.key"));
+    assertEquals("30s", source.getProperty("verification.expiration.lock.ttl"));
   }
 
   private Set<String> providerTypes(ApplicationContext context) {
@@ -157,6 +164,11 @@ class RuntimeProfileConfigurationTest {
 
   @Configuration(proxyBeanMethods = false)
   static class LocalBeans {
+    @Bean
+    ExpirationLockProperties expirationLockProperties() {
+      return new ExpirationLockProperties("test:expiration", Duration.ofSeconds(30));
+    }
+
     @Bean
     CacheManager cacheManager() {
       return new ConcurrentMapCacheManager("verification");
@@ -187,11 +199,15 @@ class RuntimeProfileConfigurationTest {
           new ProviderEndpointProperties("http://premium.test", "/verify?query={query}", ""),
           Duration.ofMillis(500));
     }
-
   }
 
   @Configuration(proxyBeanMethods = false)
   static class DistributedBeans {
+    @Bean
+    ExpirationLockProperties expirationLockProperties() {
+      return new ExpirationLockProperties("test:expiration", Duration.ofSeconds(30));
+    }
+
     @Bean
     CacheManager cacheManager() {
       return new ConcurrentMapCacheManager("verification");

@@ -1,7 +1,7 @@
 package com.incode.verification.configuration;
 
-import javax.sql.DataSource;
 import java.time.Duration;
+import javax.sql.DataSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.retry.RetryPolicy;
@@ -23,8 +23,7 @@ public class PersistenceConfiguration {
 
   @Bean
   TransactionTemplate verificationTransactionTemplate(
-      PlatformTransactionManager transactionManager,
-      DatabaseProperties properties) {
+      PlatformTransactionManager transactionManager, DatabaseProperties properties) {
     Duration timeout = properties.transactionTimeout();
     var template = new TransactionTemplate(transactionManager);
     template.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -34,8 +33,7 @@ public class PersistenceConfiguration {
   }
 
   @Bean
-  RetryTemplate verificationDatabaseRetryTemplate(
-      DatabaseRetryProperties properties) {
+  RetryTemplate verificationDatabaseRetryTemplate(DatabaseRetryProperties properties) {
     var policy =
         RetryPolicy.builder()
             .maxRetries(properties.maxAttempts() - 1L)

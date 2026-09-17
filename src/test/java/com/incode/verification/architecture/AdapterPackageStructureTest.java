@@ -12,14 +12,12 @@ class AdapterPackageStructureTest {
 
   @Test
   void separatesConfigurationInboundSchedulingAndProviderAdapters() {
-    assertTrue(
-        Files.exists(SOURCE_ROOT.resolve("configuration/ApplicationConfiguration.java")));
+    assertTrue(Files.exists(SOURCE_ROOT.resolve("configuration/ApplicationConfiguration.java")));
     assertTrue(
         Files.exists(SOURCE_ROOT.resolve("configuration/ProviderResilienceConfiguration.java")));
     assertTrue(
         Files.exists(
-            SOURCE_ROOT.resolve(
-                "adapter/in/scheduling/VerificationExpirationScheduler.java")));
+            SOURCE_ROOT.resolve("adapter/in/scheduling/VerificationExpirationScheduler.java")));
     assertTrue(Files.exists(SOURCE_ROOT.resolve("adapter/out/provider/FreeProvider.java")));
     assertTrue(Files.exists(SOURCE_ROOT.resolve("adapter/out/provider/ResilientProvider.java")));
 

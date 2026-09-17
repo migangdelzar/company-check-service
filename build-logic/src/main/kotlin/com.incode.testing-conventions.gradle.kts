@@ -8,10 +8,35 @@ plugins {
 }
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val testcontainersDockerHost =
+  providers
+    .gradleProperty("testcontainersDockerHost")
+    .orElse(providers.environmentVariable("DOCKER_HOST"))
+val testcontainersDockerSocketOverride =
+  providers
+    .gradleProperty("testcontainersDockerSocketOverride")
+    .orElse(providers.environmentVariable("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE"))
+val maxTestForks =
+  providers
+    .gradleProperty("test.maxParallelForks")
+    .map { value ->
+      value.toIntOrNull()?.also { require(it > 0) }
+        ?: error("test.maxParallelForks must be a positive integer")
+    }.orElse(1)
+val unitTest = tasks.named<Test>("test")
 
 tasks.withType<Test>().configureEach {
   useJUnitPlatform()
   systemProperty("junit.jupiter.execution.parallel.enabled", "false")
+  testcontainersDockerHost.orNull?.let {
+    environment("DOCKER_HOST", it)
+    systemProperty("docker.host", it)
+  }
+  testcontainersDockerSocketOverride.orNull?.let {
+    environment("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", it)
+    systemProperty("docker.socket.override", it)
+  }
+  maxParallelForks = maxTestForks.get()
   group = if (name == "test") "verification" else "integration"
 }
 
@@ -31,6 +56,7 @@ testing {
         }
         targets.configureEach {
           testTask.configure {
+            shouldRunAfter(unitTest)
             outputs.cacheIf { false }
             outputs.upToDateWhen { false }
           }
@@ -58,6 +84,7 @@ tasks.register("fastCheck") {
     "spotlessCheck",
     "checkstyleMain",
     "checkstyleTest",
+    "checkstyleTestFixtures",
     "test",
     "jacocoTestReport",
     "jacocoTestCoverageVerification",

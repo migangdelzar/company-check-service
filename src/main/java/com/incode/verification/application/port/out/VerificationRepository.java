@@ -1,10 +1,10 @@
 package com.incode.verification.application.port.out;
 
+import com.incode.verification.domain.query.NormalizedQuery;
 import com.incode.verification.domain.verification.Verification;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import com.incode.verification.domain.query.NormalizedQuery;
 import org.jspecify.annotations.Nullable;
 
 /** PostgreSQL adapter port. Implementations must make save atomic with their transaction. */

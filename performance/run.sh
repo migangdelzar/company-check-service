@@ -15,6 +15,17 @@ else
   exit 2
 fi
 
+topology="${PERFORMANCE_TOPOLOGY:-single}"
+compose+=( -f "$workspace_root/compose.yaml" )
+case "$topology" in
+  single) compose+=( -f "$workspace_root/compose.single.yaml" ) ;;
+  distributed) compose+=( -f "$workspace_root/compose.distributed.yaml" ) ;;
+  *)
+    printf 'PERFORMANCE_TOPOLOGY must be single or distributed: %s\n' "$topology" >&2
+    exit 2
+    ;;
+esac
+
 if [[ -f .env ]]; then
   set -a
   . ./.env
@@ -29,11 +40,28 @@ require_digest_image() {
   }
 }
 
-require_digest_image COMPANY_CHECK_SERVICE_IMAGE "${COMPANY_CHECK_SERVICE_IMAGE:?set COMPANY_CHECK_SERVICE_IMAGE}"
-require_digest_image COMPANY_CHECK_PROVIDER_IMAGE "${COMPANY_CHECK_PROVIDER_IMAGE:?set COMPANY_CHECK_PROVIDER_IMAGE}"
-require_digest_image POSTGRES_IMAGE "${POSTGRES_IMAGE:?set POSTGRES_IMAGE}"
-require_digest_image REDIS_IMAGE "${REDIS_IMAGE:?set REDIS_IMAGE}"
-require_digest_image LOCUST_IMAGE "${LOCUST_IMAGE:?set LOCUST_IMAGE}"
+resolve_image() {
+  local name="$1" default_image="$2" configured_image digest_image
+  configured_image="${!name:-$default_image}"
+  if [[ "$configured_image" != *@sha256:* ]]; then
+    digest_image="$(docker image inspect --format '{{index .RepoDigests 0}}' "$configured_image" 2>/dev/null || true)"
+    [[ -n "$digest_image" ]] || {
+      printf '%s is not available locally: %s. Build or pull it, or set %s to an immutable image digest.\n' \
+        "$name" "$configured_image" "$name" >&2
+      exit 2
+    }
+    configured_image="$digest_image"
+  fi
+  require_digest_image "$name" "$configured_image"
+  printf -v "$name" '%s' "$configured_image"
+  export "$name"
+}
+
+resolve_image COMPANY_CHECK_SERVICE_IMAGE company-check-service:local
+resolve_image COMPANY_CHECK_PROVIDER_IMAGE company-check-provider:local
+resolve_image POSTGRES_IMAGE postgres:17-alpine
+resolve_image REDIS_IMAGE redis:7-alpine
+resolve_image LOCUST_IMAGE locustio/locust:2.32.10
 
 scenario_file="${PERFORMANCE_SCENARIOS_FILE:-$service_root/performance/scenarios.env}"
 set -a

@@ -24,13 +24,11 @@ class DistributedProviderTest {
         };
     ProviderRateLimiter limiter = provider -> false;
 
-    var result =
-        new DistributedFreeProvider(delegate, limiter).lookup(new NormalizedQuery("ACME"));
+    var result = new DistributedFreeProvider(delegate, limiter).lookup(new NormalizedQuery("ACME"));
 
     assertInstanceOf(ProviderResult.Failure.class, result);
     assertInstanceOf(
-        ProviderFailure.Unavailable.class,
-        ((ProviderResult.Failure) result).failure());
+        ProviderFailure.Unavailable.class, ((ProviderResult.Failure) result).failure());
     assertFalse(invoked.get());
   }
 
@@ -44,8 +42,7 @@ class DistributedProviderTest {
         };
     ProviderRateLimiter limiter = provider -> provider == ProviderType.FREE;
 
-    var result =
-        new DistributedFreeProvider(delegate, limiter).lookup(new NormalizedQuery("ACME"));
+    var result = new DistributedFreeProvider(delegate, limiter).lookup(new NormalizedQuery("ACME"));
 
     assertInstanceOf(ProviderResult.Success.class, result);
     assertTrue(invoked.get());

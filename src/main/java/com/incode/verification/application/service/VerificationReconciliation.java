@@ -1,10 +1,10 @@
 package com.incode.verification.application.service;
 
 import com.incode.verification.application.result.VerificationResult;
-import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.company.Company;
 import com.incode.verification.domain.provider.ProviderResult;
 import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.verification.VerificationState;
 import com.incode.verification.domain.verification.VerificationStatus;
 import java.util.List;

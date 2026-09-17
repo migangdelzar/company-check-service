@@ -1,9 +1,9 @@
 package com.incode.verification.application.result;
 
-import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.company.Company;
 import com.incode.verification.domain.provider.ProviderFailure;
 import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.verification.VerificationState;
 import com.incode.verification.domain.verification.VerificationStatus;
 import java.time.Instant;

@@ -13,9 +13,7 @@ import org.springframework.validation.annotation.Validated;
 @ConfigurationProperties("verification.rate-limiting")
 @Validated
 public record ProviderRateLimitProperties(
-    @NotNull @Valid Limit free,
-    @NotNull @Valid Limit premium,
-    @NotBlank String keyPrefix) {
+    @NotNull @Valid Limit free, @NotNull @Valid Limit premium, @NotBlank String keyPrefix) {
   public Limit forProvider(ProviderType provider) {
     return switch (provider) {
       case FREE -> free;

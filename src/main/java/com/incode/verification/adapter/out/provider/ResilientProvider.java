@@ -1,7 +1,5 @@
 package com.incode.verification.adapter.out.provider;
 
-import com.incode.verification.adapter.out.provider.ProviderContractException;
-import com.incode.verification.adapter.out.provider.ProviderTransientException;
 import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.domain.provider.ProviderFailure;
 import com.incode.verification.domain.provider.ProviderResult;
@@ -14,8 +12,7 @@ abstract class ResilientProvider implements ProviderLookupPort {
     this.delegate = delegate;
   }
 
-  public ProviderResult fallback(
-      NormalizedQuery query, Throwable failure) {
+  public ProviderResult fallback(NormalizedQuery query, Throwable failure) {
     if (failure instanceof ProviderTransientException transientFailure) {
       return new ProviderResult.Failure(transientFailure.failure());
     }

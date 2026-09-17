@@ -1,15 +1,15 @@
 package com.incode.verification.application.service;
 
-import com.incode.verification.configuration.VerificationProperties;
-import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.in.StartVerificationCommand;
+import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.result.VerificationResult;
+import com.incode.verification.configuration.VerificationProperties;
+import com.incode.verification.domain.query.NormalizedQuery;
 import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.verification.VerificationState;
 import com.incode.verification.domain.verification.VerificationStatus;
-import com.incode.verification.domain.query.NormalizedQuery;
 import io.micrometer.observation.annotation.Observed;
 import java.time.Clock;
 import java.time.Duration;
@@ -120,5 +120,4 @@ public class StartVerificationService implements StartVerificationUseCase {
     }
     return VerificationResult.from(stored);
   }
-
 }

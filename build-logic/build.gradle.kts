@@ -1,15 +1,10 @@
 import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.jlleitschuh.gradle.ktlint.tasks.BaseKtLintCheckTask
+import org.gradle.api.tasks.compile.JavaCompile
 
 plugins {
   `kotlin-dsl`
   alias(libs.plugins.detekt)
-  alias(libs.plugins.ktlint)
-}
-
-repositories {
-  gradlePluginPortal()
-  mavenCentral()
+  alias(libs.plugins.spotless)
 }
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
@@ -27,30 +22,26 @@ detekt {
   parallel = true
 }
 
-ktlint {
-  version.set(libsCatalog.findVersion("ktlint").get().requiredVersion)
-  outputToConsole.set(true)
-  ignoreFailures.set(false)
-  filter {
-    exclude("**/build/**")
-    exclude("**/generated/**")
-    exclude("**/generated-sources/**")
+spotless {
+  kotlin {
+    target("src/**/*.kt")
+    ktlint(libsCatalog.findVersion("ktlint").get().requiredVersion)
+    trimTrailingWhitespace()
+    endWithNewline()
+  }
+  kotlinGradle {
+    target("*.gradle.kts", "src/**/*.gradle.kts")
+    ktlint(libsCatalog.findVersion("ktlint").get().requiredVersion)
+    trimTrailingWhitespace()
+    endWithNewline()
   }
 }
 
-tasks.withType<BaseKtLintCheckTask>().configureEach {
-  when {
-    name.contains("MainSourceSet") ->
-      setSource(
-        fileTree(layout.projectDirectory.dir("src/main/kotlin")) {
-          include("**/*.kt", "**/*.kts")
-        },
-      )
-    name.contains("TestSourceSet") ->
-      setSource(
-        fileTree(layout.projectDirectory.dir("src/test/kotlin")) {
-          include("**/*.kt", "**/*.kts")
-        },
-      )
-  }
+tasks.withType<JavaCompile>().configureEach {
+  options.encoding = "UTF-8"
+  options.isIncremental = true
+}
+
+tasks.named("check") {
+  dependsOn("spotlessCheck", "detekt")
 }

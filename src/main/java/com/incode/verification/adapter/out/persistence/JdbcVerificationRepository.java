@@ -2,9 +2,9 @@ package com.incode.verification.adapter.out.persistence;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.application.port.out.VerificationRepository;
-import com.incode.verification.domain.verification.Verification;
-import com.incode.verification.domain.query.NormalizedQuery;
 import com.incode.verification.domain.identity.UuidV7;
+import com.incode.verification.domain.query.NormalizedQuery;
+import com.incode.verification.domain.verification.Verification;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -69,7 +69,8 @@ public class JdbcVerificationRepository implements VerificationRepository {
       return false;
     }
     var entity =
-        VerificationEntity.fromVerification(verification, codec.encode(verification.state()), token);
+        VerificationEntity.fromVerification(
+            verification, codec.encode(verification.state()), token);
     return jdbc.sql(
                 "UPDATE verifications SET status=:status,state=CAST(:state AS jsonb),"
                     + "claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP "

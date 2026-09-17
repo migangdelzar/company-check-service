@@ -1,7 +1,36 @@
+# Gradle execution and cache controls
+org.gradle.daemon=true
+org.gradle.configuration-cache=true
+org.gradle.configuration-cache.problems=fail
+org.gradle.caching=true
+org.gradle.parallel=true
+org.gradle.vfs.watch=true
+localBuildCache=true
+localBuildCachePush=true
+
+# Optional shared HTTP build cache. Keep writes disabled by default on CI unless
+# the cache backend is trusted and credentials are supplied out-of-band.
+# remoteBuildCacheUrl=https://gradle-cache.example.com/cache/
+# remoteBuildCachePush=false
+# remoteBuildCacheUsername=ci-user
+# remoteBuildCachePassword=<secret>
+# remoteBuildCacheAllowInsecure=false
+
 # Copy these required immutable references into gradle.properties or pass them
 # with -P. Floating tags and invented digests are intentionally unsupported.
 paketoBuilderImage=paketobuildpacks/builder-jammy-base@sha256:<64-hex-digest>
 paketoRunImage=paketobuildpacks/run-jammy-base@sha256:<64-hex-digest>
+paketoCacheVolumePrefix=company-check-service
+paketoPullPolicy=IF_NOT_PRESENT
+cleanPaketoCache=false
+imageSmokeTimeoutSeconds=15
+
+# Optional Docker endpoint used by Testcontainers integration tests. Prefer a
+# project/CI-specific value or DOCKER_HOST instead of committing a machine path.
+# testcontainersDockerHost=unix:///path/to/docker.sock
+# For Docker daemons running inside a VM such as Colima, use the socket path
+# visible inside that VM/container namespace.
+# testcontainersDockerSocketOverride=/var/run/docker.sock
 
 # JVM is the default. Native is opt-in; the only accepted optimization is b.
 # imageVariant=native

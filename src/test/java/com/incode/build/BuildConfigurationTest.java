@@ -21,6 +21,8 @@ class BuildConfigurationTest {
     assertTrue(o.contains("integrationTest"));
     assertTrue(o.contains("contractTest"));
     assertTrue(o.contains("e2eTest"));
+    assertTrue(o.contains("qualityGate"));
+    assertTrue(o.contains("verifyFinalGates"));
   }
 
   @Test

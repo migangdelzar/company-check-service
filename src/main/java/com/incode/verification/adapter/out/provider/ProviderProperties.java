@@ -39,7 +39,8 @@ public record ProviderProperties(
   public record HttpPoolProperties(
       @Positive @DefaultValue("100") int maxConnectionsTotal,
       @Positive @DefaultValue("50") int maxConnectionsPerRoute,
-      @NotNull @DurationMin(inclusive = false) @DefaultValue("100ms") Duration connectionRequestTimeout,
+      @NotNull @DurationMin(inclusive = false) @DefaultValue("100ms")
+          Duration connectionRequestTimeout,
       @NotNull @DurationMin(inclusive = false) @DefaultValue("150ms") Duration connectTimeout,
       @NotNull @DurationMin(inclusive = false) @DefaultValue("400ms") Duration responseTimeout,
       @NotNull @DurationMin(inclusive = false) @DefaultValue("5s") Duration validateAfterInactivity,

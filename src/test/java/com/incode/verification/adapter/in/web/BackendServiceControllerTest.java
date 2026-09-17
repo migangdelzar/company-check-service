@@ -20,8 +20,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 class BackendServiceControllerTest {
   private final StartVerificationUseCase starter = mock(StartVerificationUseCase.class);
   private final MockMvc mvc =
-      MockMvcBuilders.standaloneSetup(
-              new BackendServiceController(starter))
+      MockMvcBuilders.standaloneSetup(new BackendServiceController(starter))
           .setControllerAdvice(new ApiExceptionHandler())
           .build();
 
@@ -31,9 +30,7 @@ class BackendServiceControllerTest {
     when(starter.start(any())).thenReturn(view(id));
 
     mvc.perform(
-            get("/backend-service")
-                .param("verificationId", id.toString())
-                .param("query", "Acme"))
+            get("/backend-service").param("verificationId", id.toString()).param("query", "Acme"))
         .andExpect(status().isOk())
         .andExpect(header().string("Cache-Control", "no-store"))
         .andExpect(jsonPath("$.verificationId").value(id.toString()))

@@ -84,8 +84,7 @@ class InboundRateLimitFilterTest {
   }
 
   private static InboundRateLimiter.Decision rejected(Duration retryAfter) {
-    return new InboundRateLimiter.Decision(
-        InboundRateLimiter.Decision.Status.REJECTED, retryAfter);
+    return new InboundRateLimiter.Decision(InboundRateLimiter.Decision.Status.REJECTED, retryAfter);
   }
 
   private static InboundRateLimiter.Decision unavailable(Duration retryAfter) {

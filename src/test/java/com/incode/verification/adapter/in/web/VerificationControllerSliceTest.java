@@ -28,8 +28,7 @@ class VerificationControllerSliceTest {
     var id = UUID.randomUUID();
     when(getVerification.get(id))
         .thenReturn(
-            new VerificationResult(
-                id, "Acme", "acme", null, null, null, null, null, null, null));
+            new VerificationResult(id, "Acme", "acme", null, null, null, null, null, null, null));
 
     mvc.perform(get("/verifications/{verificationId}", id))
         .andExpect(status().isOk())

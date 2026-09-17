@@ -4,10 +4,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.incode.verification.application.port.out.InboundRateLimiter;
-import java.time.Duration;
-import org.junit.jupiter.api.Test;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import java.time.Duration;
+import org.junit.jupiter.api.Test;
 
 class Resilience4jInboundRateLimiterTest {
   @Test

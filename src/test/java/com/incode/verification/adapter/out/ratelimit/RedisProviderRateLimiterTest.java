@@ -23,10 +23,7 @@ class RedisProviderRateLimiterTest {
   @Test
   void allowsWhenRedisScriptReturnsOne() {
     when(redis.execute(
-            any(DefaultRedisScript.class),
-            eq(List.of("test:rate:free")),
-            eq("1000"),
-            eq("2")))
+            any(DefaultRedisScript.class), eq(List.of("test:rate:free")), eq("1000"), eq("2")))
         .thenReturn(1L);
 
     assertTrue(limiter.tryAcquire(ProviderType.FREE));
@@ -35,10 +32,7 @@ class RedisProviderRateLimiterTest {
   @Test
   void rejectsWhenRedisScriptReturnsZero() {
     when(redis.execute(
-            any(DefaultRedisScript.class),
-            eq(List.of("test:rate:free")),
-            eq("1000"),
-            eq("2")))
+            any(DefaultRedisScript.class), eq(List.of("test:rate:free")), eq("1000"), eq("2")))
         .thenReturn(0L);
 
     assertFalse(limiter.tryAcquire(ProviderType.FREE));
@@ -47,10 +41,7 @@ class RedisProviderRateLimiterTest {
   @Test
   void rejectsWhenRedisIsUnavailable() {
     when(redis.execute(
-            any(DefaultRedisScript.class),
-            eq(List.of("test:rate:free")),
-            eq("1000"),
-            eq("2")))
+            any(DefaultRedisScript.class), eq(List.of("test:rate:free")), eq("1000"), eq("2")))
         .thenThrow(new RuntimeException("Redis unavailable"));
 
     assertFalse(limiter.tryAcquire(ProviderType.FREE));

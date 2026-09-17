@@ -44,10 +44,7 @@ public record Verification(
         query,
         startedAt,
         expiresAt,
-        new VerificationState.Completed(
-            first(active),
-            others(active),
-            result.provider()));
+        new VerificationState.Completed(first(active), others(active), result.provider()));
   }
 
   public Verification apply(ProviderResult result) {

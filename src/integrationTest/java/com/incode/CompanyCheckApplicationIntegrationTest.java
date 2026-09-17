@@ -22,8 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     properties = {"spring.profiles.active=distributed", "spring.task.scheduling.enabled=false"})
 class CompanyCheckApplicationIntegrationTest {
   @Container
-  static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine");
+  static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16-alpine");
 
   @Container
   static final GenericContainer<?> REDIS =

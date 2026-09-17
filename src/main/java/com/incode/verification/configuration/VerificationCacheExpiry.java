@@ -16,14 +16,12 @@ final class VerificationCacheExpiry implements Expiry<Object, Object> {
   }
 
   @Override
-  public long expireAfterUpdate(
-      Object key, Object value, long now, long currentDuration) {
+  public long expireAfterUpdate(Object key, Object value, long now, long currentDuration) {
     return currentDuration;
   }
 
   @Override
-  public long expireAfterRead(
-      Object key, Object value, long now, long currentDuration) {
+  public long expireAfterRead(Object key, Object value, long now, long currentDuration) {
     return currentDuration;
   }
 }

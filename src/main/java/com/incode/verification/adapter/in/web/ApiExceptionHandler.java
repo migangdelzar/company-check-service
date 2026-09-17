@@ -31,8 +31,7 @@ public class ApiExceptionHandler {
     InvalidQueryException.class
   })
   ProblemDetail invalid(Exception exception) {
-    return problem(
-        HttpStatus.BAD_REQUEST, "Invalid request", detail(exception), null);
+    return problem(HttpStatus.BAD_REQUEST, "Invalid request", detail(exception), null);
   }
 
   @ExceptionHandler(VerificationException.class)

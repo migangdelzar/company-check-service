@@ -5,12 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.company.Company;
 import com.incode.verification.domain.provider.ProviderFailure;
 import com.incode.verification.domain.provider.ProviderResult;
-import com.incode.verification.domain.verification.VerificationState;
 import com.incode.verification.domain.query.NormalizedQuery;
+import com.incode.verification.domain.verification.Verification;
+import com.incode.verification.domain.verification.VerificationState;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -56,8 +56,7 @@ class VerificationTest {
                 new ProviderResult.Success(
                     List.of(new Company("A", "A", LocalDate.parse("2020-01-01"), "x", true))));
     assertThrows(
-        IllegalStateException.class,
-        () -> v.complete(new ProviderResult.Success(List.of())));
+        IllegalStateException.class, () -> v.complete(new ProviderResult.Success(List.of())));
   }
 
   @Test

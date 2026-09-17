@@ -17,8 +17,7 @@ public class PremiumProvider extends ResilientProvider {
   @Retry(name = "premiumProvider", fallbackMethod = "fallback")
   @CircuitBreaker(name = "premiumProvider", fallbackMethod = "fallback")
   @RateLimiter(name = "premiumProvider", fallbackMethod = "fallback")
-  @Bulkhead(
-      name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
+  @Bulkhead(name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
   public ProviderResult lookup(NormalizedQuery query) {
     return delegate.lookup(query);
   }

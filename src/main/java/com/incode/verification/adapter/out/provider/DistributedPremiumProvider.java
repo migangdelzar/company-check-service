@@ -20,8 +20,7 @@ public class DistributedPremiumProvider extends ResilientProvider {
   @Override
   @Retry(name = "premiumProvider", fallbackMethod = "fallback")
   @CircuitBreaker(name = "premiumProvider", fallbackMethod = "fallback")
-  @Bulkhead(
-      name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
+  @Bulkhead(name = "premiumProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
   public ProviderResult lookup(NormalizedQuery query) {
     if (!rateLimiter.tryAcquire(ProviderType.PREMIUM)) {
       return fallback(query, new ProviderRateLimitExceededException());

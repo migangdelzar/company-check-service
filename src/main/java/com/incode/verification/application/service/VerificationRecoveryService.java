@@ -33,8 +33,7 @@ public class VerificationRecoveryService {
         .filter(result -> result.status().isTerminal())
         .map(
             result ->
-                store.store(
-                    VerificationReconciliation.fromCached(verification, result), query));
+                store.store(VerificationReconciliation.fromCached(verification, result), query));
   }
 
   public Optional<VerificationResult> shared(Verification verification) {
@@ -43,7 +42,6 @@ public class VerificationRecoveryService {
         .findByQuery(query)
         .map(
             shared ->
-                store.store(
-                    VerificationReconciliation.fromShared(verification, shared), query));
+                store.store(VerificationReconciliation.fromShared(verification, shared), query));
   }
 }

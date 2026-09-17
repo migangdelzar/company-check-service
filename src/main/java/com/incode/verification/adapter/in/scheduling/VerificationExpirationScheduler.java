@@ -1,12 +1,13 @@
 package com.incode.verification.adapter.in.scheduling;
 
 import com.incode.verification.application.port.in.ExpireVerificationsUseCase;
+import com.incode.verification.application.port.out.ExpirationLock;
 import java.time.Clock;
 import java.time.Instant;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,10 +16,13 @@ public final class VerificationExpirationScheduler {
   private static final int BATCH_SIZE = 100;
   private final ExpireVerificationsUseCase expiration;
   private final Clock clock;
+  private final ExpirationLock expirationLock;
 
-  public VerificationExpirationScheduler(ExpireVerificationsUseCase expiration, Clock clock) {
+  public VerificationExpirationScheduler(
+      ExpireVerificationsUseCase expiration, Clock clock, ExpirationLock expirationLock) {
     this.expiration = expiration;
     this.clock = clock;
+    this.expirationLock = expirationLock;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -34,7 +38,12 @@ public final class VerificationExpirationScheduler {
   private void expireUntilDrained() {
     int expired;
     do {
-      expired = expiration.expire(Instant.now(clock), BATCH_SIZE);
+      try (var lease = expirationLock.tryAcquire()) {
+        if (!lease.acquired()) {
+          return;
+        }
+        expired = expiration.expire(Instant.now(clock), BATCH_SIZE);
+      }
     } while (expired == BATCH_SIZE);
   }
 }

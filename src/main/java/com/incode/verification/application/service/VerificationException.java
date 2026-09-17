@@ -7,8 +7,7 @@ public abstract class VerificationException extends RuntimeException {
   private final String title;
   private final @Nullable String code;
 
-  protected VerificationException(
-      int status, String title, @Nullable String code, String message) {
+  protected VerificationException(int status, String title, @Nullable String code, String message) {
     super(message);
     this.status = status;
     this.title = title;
