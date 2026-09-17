@@ -226,6 +226,9 @@ fun docker(arguments: List<String>): String {
 tasks.register("imageSmoke") {
   group = "containers"
   description = "Runs a bounded Docker smoke check against the locally built image."
+  notCompatibleWithConfigurationCache(
+    "Docker process execution is intentionally isolated from configuration-cache serialization.",
+  )
   dependsOn("image")
   outputs.cacheIf { false }
   inputs.property("imageName", configuredImageName)

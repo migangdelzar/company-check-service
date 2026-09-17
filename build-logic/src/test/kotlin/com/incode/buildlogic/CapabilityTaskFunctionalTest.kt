@@ -51,6 +51,21 @@ class CapabilityTaskFunctionalTest {
     assertTrue(result.output.contains("containerCheck"))
   }
 
+  @Test
+  fun containerCheckDryRunHandlesItsConfigurationCacheBoundary() {
+    val result =
+      runFixtureWithConfigurationCache(
+        javaSpringBootAndContainerPlugins(),
+        "containerCheck",
+        "--dry-run",
+        "-PpaketoBuilderImage=paketobuildpacks/builder-jammy-base@sha256:${"0".repeat(64)}",
+        "-PpaketoRunImage=paketobuildpacks/run-jammy-base@sha256:${"0".repeat(64)}",
+      )
+
+    assertTrue(result.output.contains(":containerCheck"))
+    assertTrue(result.output.contains(":imageSmoke"))
+  }
+
   private fun javaTestingQualityAndContractPlugins(): String =
     """
     plugins {
@@ -63,10 +78,18 @@ class CapabilityTaskFunctionalTest {
 
   private fun javaSpringBootAndContainerPlugins(): String =
     """
+    import org.gradle.jvm.toolchain.JavaLanguageVersion
+
     plugins {
       java
       id("org.springframework.boot") version "4.1.1"
       id("com.incode.container-conventions")
+    }
+
+    java {
+      toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+      }
     }
     """.trimIndent()
 
@@ -74,6 +97,33 @@ class CapabilityTaskFunctionalTest {
     buildScript: String,
     vararg arguments: String,
   ): BuildResult {
+    writeFixture(buildScript)
+
+    return GradleRunner
+      .create()
+      .withProjectDir(projectDir.toFile())
+      .withArguments(*arguments, "--stacktrace", "--no-configuration-cache")
+      .build()
+  }
+
+  private fun runFixtureWithConfigurationCache(
+    buildScript: String,
+    vararg arguments: String,
+  ): BuildResult {
+    writeFixture(buildScript)
+    Files.writeString(
+      projectDir.resolve("gradle.properties"),
+      "org.gradle.configuration-cache=true\norg.gradle.configuration-cache.problems=fail\n",
+    )
+
+    return GradleRunner
+      .create()
+      .withProjectDir(projectDir.toFile())
+      .withArguments(*arguments, "--stacktrace")
+      .build()
+  }
+
+  private fun writeFixture(buildScript: String) {
     Files.createDirectories(projectDir.resolve("gradle"))
     Files.createDirectories(projectDir.resolve("src/main/java/example"))
     Files.writeString(projectDir.resolve("settings.gradle.kts"), settingsScript())
@@ -83,12 +133,6 @@ class CapabilityTaskFunctionalTest {
       projectDir.resolve("src/main/java/example/Fixture.java"),
       "package example; class Fixture {}",
     )
-
-    return GradleRunner
-      .create()
-      .withProjectDir(projectDir.toFile())
-      .withArguments(*arguments, "--stacktrace", "--no-configuration-cache")
-      .build()
   }
 
   private fun settingsScript(): String {
