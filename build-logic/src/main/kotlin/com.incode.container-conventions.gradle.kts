@@ -151,6 +151,11 @@ tasks.named<BootBuildImage>("bootBuildImage") {
   if (validatedVariant.get() == "native") {
     environment.put("BP_NATIVE_IMAGE", "true")
     environment.put("BP_SPRING_AOT_ENABLED", "true")
+  } else {
+    // The GraalVM plugin contributes native/AOT metadata even for JVM image builds.
+    // Explicitly disable both buildpack features so the JVM variant remains a JVM image.
+    environment.put("BP_NATIVE_IMAGE", "false")
+    environment.put("BP_SPRING_AOT_ENABLED", "false")
   }
   environment.putAll(
     validatedVariant.flatMap { variant ->
