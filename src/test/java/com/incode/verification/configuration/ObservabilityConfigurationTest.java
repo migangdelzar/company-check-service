@@ -25,6 +25,7 @@ class ObservabilityConfigurationTest {
     assertEquals(
         "${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:false}",
         propertySource.getProperty("management.otlp.metrics.export.enabled"));
+    assertEquals("logstash", propertySource.getProperty("logging.structured.format.console"));
     assertNull(propertySource.getProperty("management.endpoint.env.access"));
   }
 }

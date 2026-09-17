@@ -94,6 +94,10 @@ resilience4j:
     instances:
       freeProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
       premiumProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
+logging:
+  structured:
+    format:
+      console: logstash
 management:
   otlp:
     metrics:

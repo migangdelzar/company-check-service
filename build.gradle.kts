@@ -2,6 +2,7 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 
 plugins {
   alias(libs.plugins.spring.boot)
+  alias(libs.plugins.graalvm.native)
   java
   id("com.incode.testing-conventions")
   id("com.incode.quality-conventions")
