@@ -78,16 +78,20 @@ testSuiteNames.forEach { suiteName ->
 
 tasks.named("check") { dependsOn("integrationTest", "contractTest", "e2eTest") }
 
+tasks.register("integrationCheck") {
+  group = "verification"
+  description = "Runs integration tests against external service containers."
+  dependsOn("integrationTest")
+}
+
+tasks.register("e2eCheck") {
+  group = "verification"
+  description = "Runs end-to-end verification tests."
+  dependsOn("e2eTest")
+}
+
 tasks.register("fastCheck") {
   group = "verification"
   description = "Runs unit tests and local quality checks without external-service validation."
-  dependsOn(
-    "spotlessCheck",
-    "checkstyleMain",
-    "checkstyleTest",
-    "checkstyleTestFixtures",
-    "test",
-    "jacocoTestReport",
-    "jacocoTestCoverageVerification",
-  )
+  dependsOn("unitCheck")
 }

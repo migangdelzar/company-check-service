@@ -50,7 +50,7 @@ val paketoRunImage =
   }
 val imageTaskRequested =
   gradle.startParameter.taskNames.any { task ->
-    task.substringAfterLast(':') in setOf("image", "imageSmoke", "bootBuildImage")
+    task.substringAfterLast(':') in setOf("image", "imageSmoke", "containerCheck", "bootBuildImage")
   }
 if (imageTaskRequested) {
   require(paketoBuilderImage.isPresent) {
@@ -261,4 +261,10 @@ tasks.register("imageSmoke") {
       runCatching { docker(listOf("rm", "-f", containerId)) }
     }
   }
+}
+
+tasks.register("containerCheck") {
+  group = "verification"
+  description = "Builds the configured image and runs the bounded image smoke check."
+  dependsOn("imageSmoke")
 }

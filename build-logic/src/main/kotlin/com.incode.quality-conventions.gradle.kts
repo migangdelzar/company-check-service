@@ -112,6 +112,20 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
   }
 }
 
+tasks.register("unitCheck") {
+  group = "verification"
+  description = "Runs formatting, static analysis, unit tests, and coverage checks."
+  dependsOn(
+    "spotlessCheck",
+    "checkstyleMain",
+    "checkstyleTest",
+    "checkstyleTestFixtures",
+    "test",
+    "jacocoTestReport",
+    "jacocoTestCoverageVerification",
+  )
+}
+
 tasks.named("check") {
   dependsOn(
     "spotlessCheck",

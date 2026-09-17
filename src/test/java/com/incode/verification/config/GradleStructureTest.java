@@ -43,8 +43,11 @@ class GradleStructureTest {
     String fastCheck = testing.substring(testing.indexOf("fastCheck"));
 
     assertTrue(testing.contains("tasks.register(\"fastCheck\")"));
-    assertTrue(fastCheck.contains("spotlessCheck"));
-    assertTrue(fastCheck.contains("test"));
+    assertTrue(testing.contains("integrationCheck"));
+    assertTrue(testing.contains("e2eCheck"));
+    assertTrue(fastCheck.contains("unitCheck"));
+    assertFalse(fastCheck.contains("spotlessCheck"));
+    assertFalse(fastCheck.contains("jacocoTestReport"));
     assertFalse(fastCheck.contains("integrationTest"));
     assertFalse(fastCheck.contains("contractTest"));
     assertFalse(fastCheck.contains("e2eTest"));
@@ -78,9 +81,12 @@ class GradleStructureTest {
                 "src/main/kotlin/com.incode.container-conventions.gradle.kts"));
 
     assertTrue(quality.contains("qualityGate"));
+    assertTrue(quality.contains("unitCheck"));
     assertTrue(quality.contains("jacocoTestCoverageVerification"));
     assertTrue(contracts.contains("openApiValidate"));
+    assertTrue(contracts.contains("contractCheck"));
     assertTrue(container.contains("imageSmoke"));
+    assertTrue(container.contains("containerCheck"));
     assertTrue(container.contains("bootBuildImage"));
     assertTrue(container.contains("BP_SPRING_AOT_ENABLED"));
     assertTrue(container.contains("sha256"));

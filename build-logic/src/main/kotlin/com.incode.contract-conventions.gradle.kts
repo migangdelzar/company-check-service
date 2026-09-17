@@ -29,3 +29,12 @@ tasks.register<Exec>("openApiValidate") {
   )
   args(openApiContracts.files.sortedBy { it.absolutePath }.map { it.absolutePath })
 }
+
+val contractCheck =
+  tasks.register("contractCheck") {
+    group = "verification"
+    description = "Runs API contract tests and OpenAPI validation."
+    dependsOn("openApiValidate")
+  }
+
+contractCheck.configure { dependsOn(tasks.named("contractTest")) }
