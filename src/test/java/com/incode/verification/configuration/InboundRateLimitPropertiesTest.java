@@ -2,6 +2,7 @@ package com.incode.verification.configuration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.incode.verification.configuration.web.InboundRateLimitProperties;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;
 

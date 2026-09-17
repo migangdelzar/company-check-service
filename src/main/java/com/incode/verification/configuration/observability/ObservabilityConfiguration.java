@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.observability;
 
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.observation.aop.ObservedAspect;

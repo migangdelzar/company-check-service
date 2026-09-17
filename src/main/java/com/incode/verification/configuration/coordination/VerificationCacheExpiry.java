@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.coordination;
 
 import com.github.benmanes.caffeine.cache.Expiry;
 import com.incode.verification.application.result.VerificationResult;

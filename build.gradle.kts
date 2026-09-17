@@ -27,6 +27,7 @@ dependencies {
   implementation(libs.commons.pool2)
   implementation(libs.spring.boot.starter.web)
   implementation(libs.spring.boot.starter.actuator)
+  implementation(libs.spring.boot.starter.opentelemetry)
   implementation(libs.spring.boot.starter.cache)
   implementation(libs.spring.boot.starter.aspectj)
   implementation(libs.spring.boot.starter.validation)

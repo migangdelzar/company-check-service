@@ -2,6 +2,7 @@ package com.incode.verification.adapter.out.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.incode.verification.application.port.out.ProviderLookupPort;
+import com.incode.verification.configuration.provider.ProviderEndpointProperties;
 import com.incode.verification.domain.provider.ProviderFailure;
 import com.incode.verification.domain.provider.ProviderResult;
 import com.incode.verification.domain.provider.ProviderType;

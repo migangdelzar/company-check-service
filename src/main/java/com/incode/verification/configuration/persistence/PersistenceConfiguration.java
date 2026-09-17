@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.persistence;
 
 import java.time.Duration;
 import javax.sql.DataSource;

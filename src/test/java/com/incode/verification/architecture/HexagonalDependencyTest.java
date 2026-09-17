@@ -1,14 +1,47 @@
 package com.incode.verification.architecture;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.incode.verification.domain.verification.Verification;
+import com.tngtech.archunit.core.domain.JavaClasses;
+import com.tngtech.archunit.core.importer.ClassFileImporter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
 class HexagonalDependencyTest {
+  private final JavaClasses verificationClasses =
+      new ClassFileImporter().importPath(Path.of("build/classes/java/main"));
+
+  @Test
+  void domainDoesNotDependOnSpringOrInfrastructure() {
+    noClasses()
+        .that()
+        .resideInAPackage("..verification.domain..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage(
+            "org.springframework..",
+            "org.apache.hc..",
+            "org.springframework.data.redis..",
+            "javax.sql..",
+            "java.sql..")
+        .check(verificationClasses);
+  }
+
+  @Test
+  void applicationDoesNotDependOnConfiguration() {
+    noClasses()
+        .that()
+        .resideInAnyPackage("..verification.application..")
+        .should()
+        .dependOnClassesThat()
+        .resideInAnyPackage("..verification.configuration..")
+        .check(verificationClasses);
+  }
+
   @Test
   void domainTypesHaveNoSpringAnnotations() {
     assertFalse(

@@ -2,9 +2,9 @@ package com.incode.verification.adapter.out.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import com.incode.verification.configuration.DatabaseProperties;
-import com.incode.verification.configuration.DatabaseRetryProperties;
-import com.incode.verification.configuration.PersistenceConfiguration;
+import com.incode.verification.configuration.persistence.DatabaseProperties;
+import com.incode.verification.configuration.persistence.DatabaseRetryProperties;
+import com.incode.verification.configuration.persistence.PersistenceConfiguration;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

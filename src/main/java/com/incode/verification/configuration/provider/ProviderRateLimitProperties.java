@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.provider;
 
 import com.incode.verification.domain.provider.ProviderType;
 import jakarta.validation.Valid;

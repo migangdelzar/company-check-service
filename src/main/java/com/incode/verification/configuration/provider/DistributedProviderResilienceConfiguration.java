@@ -1,8 +1,7 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.provider;
 
 import com.incode.verification.adapter.out.provider.DistributedFreeProvider;
 import com.incode.verification.adapter.out.provider.DistributedPremiumProvider;
-import com.incode.verification.adapter.out.provider.ProviderProperties;
 import com.incode.verification.adapter.out.provider.RestClientProviderAdapter;
 import com.incode.verification.adapter.out.ratelimit.ProviderRateLimiter;
 import com.incode.verification.adapter.out.ratelimit.RedisProviderRateLimiter;

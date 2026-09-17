@@ -5,7 +5,6 @@ import com.incode.verification.application.port.in.StartVerificationUseCase;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.result.VerificationResult;
-import com.incode.verification.configuration.VerificationProperties;
 import com.incode.verification.domain.query.NormalizedQuery;
 import com.incode.verification.domain.verification.Verification;
 import com.incode.verification.domain.verification.VerificationState;
@@ -15,6 +14,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -34,14 +34,14 @@ public class StartVerificationService implements StartVerificationUseCase {
       VerificationStoreService store,
       VerificationRecoveryService verificationRecovery,
       Clock clock,
-      VerificationProperties properties) {
+      @Qualifier("verificationLifetime") Duration lifetime) {
     this.verificationRepository = verificationRepository;
     this.coordination = coordination;
     this.providerLookup = providerLookup;
     this.store = store;
     this.verificationRecovery = verificationRecovery;
     this.clock = clock;
-    this.lifetime = properties.lifetime();
+    this.lifetime = lifetime;
   }
 
   @Override

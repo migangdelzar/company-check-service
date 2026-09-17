@@ -1,6 +1,8 @@
 spring:
   profiles:
     default: single-node
+  application:
+    name: company-check-service
   main:
     keep-alive: true
   threads:
@@ -93,6 +95,22 @@ resilience4j:
       freeProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
       premiumProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
 management:
+  otlp:
+    metrics:
+      export:
+        enabled: ${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:false}
+  tracing:
+    sampling:
+      probability: ${MANAGEMENT_TRACING_SAMPLING_PROBABILITY:0.1}
+    export:
+      otlp:
+        enabled: ${MANAGEMENT_TRACING_EXPORT_OTLP_ENABLED:false}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_ENDPOINT:http://localhost:4317}
+          transport: ${MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_TRANSPORT:grpc}
   endpoints:
     web:
       exposure:

@@ -1,6 +1,6 @@
 package com.incode.verification.adapter.out.ratelimit;
 
-import com.incode.verification.configuration.ProviderRateLimitProperties;
+import com.incode.verification.configuration.provider.ProviderRateLimitProperties;
 import com.incode.verification.domain.provider.ProviderType;
 import java.util.List;
 import java.util.Locale;

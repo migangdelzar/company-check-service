@@ -50,12 +50,7 @@ val paketoRunImage =
   }
 val imageTaskRequested =
   gradle.startParameter.taskNames.any { task ->
-    task == "image" ||
-      task.endsWith(":image") ||
-      task == "imageSmoke" ||
-      task.endsWith(":imageSmoke") ||
-      task == "bootBuildImage" ||
-      task.endsWith(":bootBuildImage")
+    task.substringAfterLast(':') in setOf("image", "imageSmoke", "bootBuildImage")
   }
 if (imageTaskRequested) {
   require(paketoBuilderImage.isPresent) {
@@ -86,6 +81,27 @@ val imageLabels =
     "org.opencontainers.image.vendor=Incode",
   ).joinToString(",")
 
+fun org.gradle.api.Task.imageInputs() {
+  inputs.properties(
+    mapOf(
+      "imageVariant" to validatedVariant,
+      "imageName" to configuredImageName,
+      "publishImage" to publishImage,
+      "imagePlatform" to configuredImagePlatform,
+      "paketoCacheVolumePrefix" to paketoCacheVolumePrefix,
+      "paketoPullPolicy" to paketoPullPolicy,
+      "cleanPaketoCache" to cleanPaketoCache,
+      "nativeOptimization" to nativeOptimization,
+      "paketoBuilderImage" to paketoBuilderImage,
+      "paketoRunImage" to paketoRunImage,
+    ),
+  )
+  inputs.files(
+    layout.projectDirectory.file("gradle.lockfile"),
+    layout.projectDirectory.file("settings-gradle.lockfile"),
+  )
+}
+
 tasks.named<BootBuildImage>("bootBuildImage") {
   group = "containers"
   imageName.set(configuredImageName)
@@ -108,17 +124,7 @@ tasks.named<BootBuildImage>("bootBuildImage") {
       name.set(paketoCacheVolumePrefix.map { "$it.workspace" })
     }
   }
-  inputs.property("imageVariant", validatedVariant)
-  inputs.property("publishImage", publishImage)
-  inputs.property("imagePlatform", configuredImagePlatform)
-  inputs.property("paketoCacheVolumePrefix", paketoCacheVolumePrefix)
-  inputs.property("paketoPullPolicy", paketoPullPolicy)
-  inputs.property("cleanPaketoCache", cleanPaketoCache)
-  inputs.property("nativeOptimization", nativeOptimization)
-  inputs.property("paketoBuilderImage", paketoBuilderImage)
-  inputs.property("paketoRunImage", paketoRunImage)
-  inputs.file(layout.projectDirectory.file("gradle.lockfile"))
-  inputs.file(layout.projectDirectory.file("settings-gradle.lockfile"))
+  imageInputs()
   builder.set(paketoBuilderImage)
   runImage.set(paketoRunImage)
   environment.put(
@@ -153,18 +159,7 @@ tasks.register("image") {
   group = "containers"
   description = "Builds the JVM or native image with Paketo via Spring Boot."
   dependsOn("bootBuildImage")
-  inputs.property("imageVariant", validatedVariant)
-  inputs.property("imageName", configuredImageName)
-  inputs.property("publishImage", publishImage)
-  inputs.property("imagePlatform", configuredImagePlatform)
-  inputs.property("paketoCacheVolumePrefix", paketoCacheVolumePrefix)
-  inputs.property("paketoPullPolicy", paketoPullPolicy)
-  inputs.property("cleanPaketoCache", cleanPaketoCache)
-  inputs.property("nativeOptimization", nativeOptimization)
-  inputs.property("paketoBuilderImage", paketoBuilderImage)
-  inputs.property("paketoRunImage", paketoRunImage)
-  inputs.file(layout.projectDirectory.file("gradle.lockfile"))
-  inputs.file(layout.projectDirectory.file("settings-gradle.lockfile"))
+  imageInputs()
 }
 
 fun requireDigestImage(

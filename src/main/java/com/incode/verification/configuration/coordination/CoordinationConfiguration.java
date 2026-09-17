@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.coordination;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.adapter.out.coordination.RedisCoordinationAdapter;

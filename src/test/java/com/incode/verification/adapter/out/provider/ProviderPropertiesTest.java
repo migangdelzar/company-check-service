@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import com.incode.verification.configuration.provider.ProviderEndpointProperties;
+import com.incode.verification.configuration.provider.ProviderProperties;
 import jakarta.validation.Validation;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

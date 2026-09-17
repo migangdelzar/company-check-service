@@ -1,7 +1,5 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.provider;
 
-import com.incode.verification.adapter.out.provider.ProviderEndpointProperties;
-import com.incode.verification.adapter.out.provider.ProviderProperties;
 import org.apache.hc.client5.http.config.ConnectionConfig;
 import org.apache.hc.client5.http.config.RequestConfig;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;

@@ -1,7 +1,7 @@
 package com.incode.verification.adapter.out.ratelimit;
 
 import com.incode.verification.application.port.out.InboundRateLimiter;
-import com.incode.verification.configuration.InboundRateLimitProperties;
+import com.incode.verification.configuration.web.InboundRateLimitProperties;
 import java.time.Duration;
 import java.util.List;
 import org.slf4j.Logger;

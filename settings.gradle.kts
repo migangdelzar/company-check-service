@@ -12,15 +12,16 @@ dependencyResolutionManagement {
   repositories { mavenCentral() }
 }
 
-val localBuildCacheEnabled =
-  providers.gradleProperty("localBuildCache").map(String::toBooleanStrict).orElse(true)
-val localBuildCachePush =
-  providers.gradleProperty("localBuildCachePush").map(String::toBooleanStrict).orElse(true)
+fun booleanProperty(
+  name: String,
+  default: Boolean,
+) = providers.gradleProperty(name).map(String::toBooleanStrict).orElse(default)
+
+val localBuildCacheEnabled = booleanProperty("localBuildCache", true)
+val localBuildCachePush = booleanProperty("localBuildCachePush", true)
 val remoteBuildCacheUrl = providers.gradleProperty("remoteBuildCacheUrl")
-val remoteBuildCachePush =
-  providers.gradleProperty("remoteBuildCachePush").map(String::toBooleanStrict).orElse(false)
-val remoteBuildCacheAllowInsecure =
-  providers.gradleProperty("remoteBuildCacheAllowInsecure").map(String::toBooleanStrict).orElse(false)
+val remoteBuildCachePush = booleanProperty("remoteBuildCachePush", false)
+val remoteBuildCacheAllowInsecure = booleanProperty("remoteBuildCacheAllowInsecure", false)
 
 buildCache {
   local {

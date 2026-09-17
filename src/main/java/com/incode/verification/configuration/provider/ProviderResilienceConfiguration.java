@@ -1,8 +1,7 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.provider;
 
 import com.incode.verification.adapter.out.provider.FreeProvider;
 import com.incode.verification.adapter.out.provider.PremiumProvider;
-import com.incode.verification.adapter.out.provider.ProviderProperties;
 import com.incode.verification.adapter.out.provider.RestClientProviderAdapter;
 import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.domain.provider.ProviderType;

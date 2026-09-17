@@ -1,7 +1,7 @@
 package com.incode.verification.adapter.out.coordination;
 
 import com.incode.verification.application.port.out.ExpirationLock;
-import com.incode.verification.configuration.ExpirationLockProperties;
+import com.incode.verification.configuration.coordination.ExpirationLockProperties;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;

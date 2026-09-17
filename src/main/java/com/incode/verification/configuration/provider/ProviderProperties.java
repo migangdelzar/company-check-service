@@ -1,4 +1,4 @@
-package com.incode.verification.adapter.out.provider;
+package com.incode.verification.configuration.provider;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;

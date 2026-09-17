@@ -10,7 +10,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.incode.verification.application.port.out.ExpirationLock;
-import com.incode.verification.configuration.ExpirationLockProperties;
+import com.incode.verification.configuration.coordination.ExpirationLockProperties;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;

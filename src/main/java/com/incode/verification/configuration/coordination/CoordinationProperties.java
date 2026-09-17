@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.coordination;
 
 import com.incode.verification.application.result.VerificationResult;
 import jakarta.validation.constraints.NotBlank;

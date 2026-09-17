@@ -12,9 +12,20 @@ class AdapterPackageStructureTest {
 
   @Test
   void separatesConfigurationInboundSchedulingAndProviderAdapters() {
-    assertTrue(Files.exists(SOURCE_ROOT.resolve("configuration/ApplicationConfiguration.java")));
     assertTrue(
-        Files.exists(SOURCE_ROOT.resolve("configuration/ProviderResilienceConfiguration.java")));
+        Files.exists(
+            SOURCE_ROOT.resolve("configuration/application/ApplicationConfiguration.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("configuration/provider/ProviderResilienceConfiguration.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("configuration/persistence/PersistenceConfiguration.java")));
+    assertTrue(
+        Files.exists(
+            SOURCE_ROOT.resolve("configuration/coordination/CoordinationConfiguration.java")));
+    assertTrue(
+        Files.exists(SOURCE_ROOT.resolve("configuration/web/InboundRateLimitConfiguration.java")));
     assertTrue(
         Files.exists(
             SOURCE_ROOT.resolve("adapter/in/scheduling/VerificationExpirationScheduler.java")));
@@ -23,5 +34,8 @@ class AdapterPackageStructureTest {
 
     assertFalse(Files.exists(SOURCE_ROOT.resolve("adapter/config")));
     assertFalse(Files.exists(SOURCE_ROOT.resolve("adapter/out/expiration")));
+    assertFalse(Files.exists(SOURCE_ROOT.resolve("configuration/ApplicationConfiguration.java")));
+    assertFalse(
+        Files.exists(SOURCE_ROOT.resolve("configuration/ProviderResilienceConfiguration.java")));
   }
 }

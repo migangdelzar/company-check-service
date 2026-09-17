@@ -8,6 +8,7 @@ plugins {
 }
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val testSuiteNames = listOf("integrationTest", "contractTest", "e2eTest")
 val testcontainersDockerHost =
   providers
     .gradleProperty("testcontainersDockerHost")
@@ -42,7 +43,7 @@ tasks.withType<Test>().configureEach {
 
 testing {
   suites {
-    listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
+    testSuiteNames.forEach { suiteName ->
       register<JvmTestSuite>(suiteName) {
         useJUnitJupiter()
         sources { java.setSrcDirs(listOf("src/$suiteName/java")) }
@@ -66,7 +67,7 @@ testing {
   }
 }
 
-listOf("integrationTest", "contractTest", "e2eTest").forEach { suiteName ->
+testSuiteNames.forEach { suiteName ->
   configurations.named("${suiteName}Implementation") {
     extendsFrom(configurations.named("testImplementation").get())
   }

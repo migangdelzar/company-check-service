@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.persistence;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

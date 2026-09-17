@@ -18,7 +18,6 @@ import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.StartVerificationService;
 import com.incode.verification.application.service.VerificationRecoveryService;
 import com.incode.verification.application.service.VerificationStoreService;
-import com.incode.verification.configuration.VerificationProperties;
 import com.incode.verification.domain.provider.ProviderFailure;
 import com.incode.verification.domain.provider.ProviderResult;
 import com.incode.verification.domain.provider.ProviderType;
@@ -441,7 +440,7 @@ class VerificationUseCaseServiceTest {
             terminal,
             recovery,
             clock,
-            new VerificationProperties(lifetime)),
+            lifetime),
         new GetVerificationService(repository, recovery));
   }
 

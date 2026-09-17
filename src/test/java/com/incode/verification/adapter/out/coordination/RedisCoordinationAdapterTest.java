@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.application.result.VerificationResult;
-import com.incode.verification.configuration.CoordinationProperties;
+import com.incode.verification.configuration.coordination.CoordinationProperties;
 import com.incode.verification.domain.query.NormalizedQuery;
 import java.time.Duration;
 import org.junit.jupiter.api.Test;

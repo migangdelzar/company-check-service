@@ -22,6 +22,9 @@ class ObservabilityConfigurationTest {
     assertEquals("never", propertySource.getProperty("management.endpoint.health.show-details"));
     assertEquals(
         "read-only", propertySource.getProperty("management.endpoints.access.max-permitted"));
+    assertEquals(
+        "${MANAGEMENT_OTLP_METRICS_EXPORT_ENABLED:false}",
+        propertySource.getProperty("management.otlp.metrics.export.enabled"));
     assertNull(propertySource.getProperty("management.endpoint.env.access"));
   }
 }

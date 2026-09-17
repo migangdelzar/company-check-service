@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.web;
 
 import com.incode.verification.adapter.out.ratelimit.RedisInboundRateLimiter;
 import com.incode.verification.adapter.out.ratelimit.Resilience4jInboundRateLimiter;

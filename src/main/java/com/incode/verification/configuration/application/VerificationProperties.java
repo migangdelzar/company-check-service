@@ -1,4 +1,4 @@
-package com.incode.verification.configuration;
+package com.incode.verification.configuration.application;
 
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
