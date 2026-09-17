@@ -14,6 +14,7 @@ spring:
       connect-timeout: 250ms
 
 verification:
+  lifetime: 10m
   expiration:
     reaper-delay: 1000ms
   providers:
@@ -38,6 +39,7 @@ verification:
     key-prefix: "company-check:"
 resilience4j:
   retry:
+    aspect-order: 1
     instances:
       freeProvider:
         max-attempts: 2
@@ -50,14 +52,17 @@ resilience4j:
         retry-exceptions:
           - com.incode.verification.adapter.out.provider.ProviderTransientException
   circuitbreaker:
+    aspect-order: 2
     instances:
       freeProvider: { sliding-window-size: 20, minimum-number-of-calls: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s, permitted-number-of-calls-in-half-open-state: 2 }
       premiumProvider: { sliding-window-size: 20, minimum-number-of-calls: 10, failure-rate-threshold: 50, wait-duration-in-open-state: 10s, permitted-number-of-calls-in-half-open-state: 2 }
   ratelimiter:
+    aspect-order: 3
     instances:
       freeProvider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 }
       premiumProvider: { limit-for-period: 100, limit-refresh-period: 1s, timeout-duration: 0 }
   bulkhead:
+    aspect-order: 4
     instances:
       freeProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }
       premiumProvider: { max-concurrent-calls: 50, max-wait-duration: 0 }

@@ -3,7 +3,9 @@ package com.incode.verification.adapter.out.observability;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Duration;
 import java.util.Objects;
+import org.springframework.stereotype.Component;
 
+@Component
 public final class MicrometerTelemetryAdapter {
   private final MeterRegistry registry;
 

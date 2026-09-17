@@ -9,6 +9,7 @@ import com.incode.verification.application.port.out.VerificationAlreadyExistsExc
 import com.incode.verification.application.port.out.VerificationRepository;
 import com.incode.verification.application.port.out.VerificationView;
 import com.incode.verification.domain.aggregate.Verification;
+import com.incode.verification.domain.entity.Company;
 import com.incode.verification.domain.policy.FallbackPolicy;
 import com.incode.verification.domain.type.ProviderLookupResult;
 import com.incode.verification.domain.type.ProviderType;
@@ -20,8 +21,15 @@ import com.incode.verification.domain.valueobject.UuidV7;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
+@Service
 public final class VerificationApplicationService
     implements StartVerificationUseCase, GetVerificationUseCase {
   private final VerificationRepository repository;
@@ -31,13 +39,14 @@ public final class VerificationApplicationService
   private final Clock clock;
   private final Duration lifetime;
 
+  @Autowired
   public VerificationApplicationService(
       VerificationRepository repository,
       CoordinationPort coordination,
-      ProviderLookupPort primaryProvider,
-      ProviderLookupPort fallbackProvider,
+      @Qualifier("freeProvider") ProviderLookupPort primaryProvider,
+      @Qualifier("premiumProvider") ProviderLookupPort fallbackProvider,
       Clock clock,
-      Duration lifetime) {
+      @Value("${verification.lifetime:10m}") Duration lifetime) {
     this.repository = repository;
     this.coordination = coordination;
     this.primaryProvider = primaryProvider;
@@ -75,7 +84,7 @@ public final class VerificationApplicationService
           return completeFromCached(verification, cached.orElseThrow(), key, true);
         var shared = repository.findTerminalByQuery(normalized);
         if (shared.isPresent()) return completeFromShared(verification, shared.orElseThrow(), key);
-        return view(verification);
+        return VerificationViewMapper.from(verification);
       }
       var cached = coordination.cached(key);
       if (cached.isPresent())
@@ -86,14 +95,13 @@ public final class VerificationApplicationService
       var result = lookup(primaryProvider, normalized, context);
       if (FallbackPolicy.shouldFallback(result))
         result = lookup(fallbackProvider, normalized, context);
-      var finalResult = result;
       var completed =
-          result instanceof ProviderLookupResult.Success success
-              ? verification.complete(success, Instant.now(clock))
-              : verification.fail(
-                  ((ProviderLookupResult.Failure) finalResult).failure(), Instant.now(clock));
+          switch (result) {
+            case ProviderLookupResult.Success success -> verification.complete(success);
+            case ProviderLookupResult.Failure failure -> verification.fail(failure.failure());
+          };
       persistTerminal(completed);
-      var resultView = view(completed);
+      var resultView = VerificationViewMapper.from(completed);
       coordination.cache(key, resultView);
       if (completed.state() instanceof VerificationState.Failed failed)
         throw new ProviderSubmissionException(failed.failure(), "provider resolution failed");
@@ -111,7 +119,8 @@ public final class VerificationApplicationService
   }
 
   private VerificationView pollSharedTerminal(Verification verification) {
-    if (!(verification.state() instanceof VerificationState.InProgress)) return view(verification);
+    if (!(verification.state() instanceof VerificationState.InProgress))
+      return VerificationViewMapper.from(verification);
     var key = new LookupKey(verification.query());
     var cached = coordination.cached(key);
     if (cached.isPresent())
@@ -119,48 +128,7 @@ public final class VerificationApplicationService
     var shared = repository.findTerminalByQuery(verification.query());
     return shared
         .map(value -> completeFromShared(verification, value, key))
-        .orElseGet(() -> view(verification));
-  }
-
-  private VerificationView view(Verification v) {
-    return switch (v.state()) {
-      case VerificationState.InProgress ignored ->
-          new VerificationView(
-              v.id(),
-              v.rawQuery(),
-              v.query().value(),
-              v.startedAt(),
-              v.expiresAt(),
-              VerificationStatus.IN_PROGRESS,
-              null,
-              null,
-              null,
-              null);
-      case VerificationState.Completed s ->
-          new VerificationView(
-              v.id(),
-              v.rawQuery(),
-              v.query().value(),
-              v.startedAt(),
-              v.expiresAt(),
-              VerificationStatus.COMPLETED,
-              s.company(),
-              s.otherResults(),
-              s.provider(),
-              null);
-      case VerificationState.Failed s ->
-          new VerificationView(
-              v.id(),
-              v.rawQuery(),
-              v.query().value(),
-              v.startedAt(),
-              v.expiresAt(),
-              VerificationStatus.FAILED,
-              null,
-              null,
-              null,
-              s.failure());
-    };
+        .orElseGet(() -> VerificationViewMapper.from(verification));
   }
 
   private VerificationView existingResult(Verification stored, NormalizedQuery normalized) {
@@ -170,7 +138,7 @@ public final class VerificationApplicationService
     if (stored.state() instanceof VerificationState.InProgress)
       throw new VerificationConflictException(
           "VERIFICATION_IN_PROGRESS", "verification is already in progress");
-    return view(stored);
+    return VerificationViewMapper.from(stored);
   }
 
   private ProviderLookupResult lookup(
@@ -178,9 +146,8 @@ public final class VerificationApplicationService
     try {
       return ScopedValue.where(ExecutionContext.CURRENT, context)
           .call(() -> provider.lookup(query, context));
-    } catch (RuntimeException exception) {
-      throw exception;
     } catch (Exception exception) {
+      if (exception instanceof RuntimeException runtimeException) throw runtimeException;
       throw new IllegalStateException("provider lookup failed", exception);
     }
   }
@@ -188,25 +155,20 @@ public final class VerificationApplicationService
   private VerificationView completeFromCached(
       Verification verification, VerificationView cached, LookupKey key, boolean raiseFailure) {
     if (cached.status() == VerificationStatus.FAILED) {
-      var failed = verification.fail(cached.failure(), Instant.now(clock));
+      var failed = verification.fail(cached.failure());
       persistTerminal(failed);
-      coordination.cache(key, view(failed));
+      coordination.cache(key, VerificationViewMapper.from(failed));
       if (raiseFailure)
         throw new ProviderSubmissionException(cached.failure(), "provider resolution failed");
-      return view(failed);
+      return VerificationViewMapper.from(failed);
     }
-    var companies =
-        java.util.stream.Stream.concat(
-                java.util.stream.Stream.ofNullable(cached.company()),
-                cached.otherResults().stream())
-            .toList();
+    var companies = companies(cached.company(), cached.otherResults());
     var completed =
         verification.complete(
             new ProviderLookupResult.Success(
-                companies, cached.provider() == null ? ProviderType.FREE : cached.provider()),
-            Instant.now(clock));
+                companies, cached.provider() == null ? ProviderType.FREE : cached.provider()));
     persistTerminal(completed);
-    var result = view(completed);
+    var result = VerificationViewMapper.from(completed);
     coordination.cache(key, result);
     return result;
   }
@@ -219,17 +181,12 @@ public final class VerificationApplicationService
           case VerificationState.Completed completed ->
               verification.complete(
                   new ProviderLookupResult.Success(
-                      java.util.stream.Stream.concat(
-                              java.util.stream.Stream.ofNullable(completed.company()),
-                              completed.otherResults().stream())
-                          .toList(),
-                      completed.provider()),
-                  Instant.now(clock));
-          case VerificationState.Failed failed ->
-              verification.fail(failed.failure(), Instant.now(clock));
+                      companies(completed.company(), completed.otherResults()),
+                      completed.provider()));
+          case VerificationState.Failed failed -> verification.fail(failed.failure());
         };
     persistTerminal(hydrated);
-    var result = view(hydrated);
+    var result = VerificationViewMapper.from(hydrated);
     coordination.cache(key, result);
     return result;
   }
@@ -239,5 +196,9 @@ public final class VerificationApplicationService
     if (claimToken == null) throw new IllegalStateException("verification terminal claim lost");
     if (!repository.updateTerminal(verification.id(), claimToken, verification))
       throw new IllegalStateException("verification terminal update lost ownership");
+  }
+
+  private static List<Company> companies(Company company, List<Company> otherResults) {
+    return Stream.concat(Stream.ofNullable(company), otherResults.stream()).toList();
   }
 }

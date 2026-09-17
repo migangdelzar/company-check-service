@@ -18,23 +18,23 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
 import org.apache.hc.core5.util.Timeout;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestClient;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(ProviderProperties.class)
 public class ProviderConfiguration {
   @Bean("freeProviderClient")
-  RestClient freeProviderClient(ProviderProperties p, CloseableHttpClient http) {
-    return client(p.free(), http);
+  RestClient freeProviderClient(
+      RestClient.Builder builder, ProviderProperties p, CloseableHttpClient http) {
+    return client(builder, p.free(), http);
   }
 
   @Bean("premiumProviderClient")
-  RestClient premiumProviderClient(ProviderProperties p, CloseableHttpClient http) {
-    return client(p.premium(), http);
+  RestClient premiumProviderClient(
+      RestClient.Builder builder, ProviderProperties p, CloseableHttpClient http) {
+    return client(builder, p.premium(), http);
   }
 
   @Bean
@@ -51,7 +51,7 @@ public class ProviderConfiguration {
         new RestClientProviderAdapter(c, ProviderType.PREMIUM, p.premium()));
   }
 
-  @Bean
+  @Bean(destroyMethod = "close")
   CloseableHttpClient providerHttpClient(ProviderProperties p) {
     var timeout = p.attemptTimeout();
     var manager =
@@ -68,8 +68,9 @@ public class ProviderConfiguration {
     return HttpClients.custom().setConnectionManager(manager).setDefaultRequestConfig(rc).build();
   }
 
-  private RestClient client(ProviderProperties.Endpoint e, CloseableHttpClient http) {
-    return RestClient.builder()
+  private RestClient client(
+      RestClient.Builder builder, ProviderProperties.Endpoint e, CloseableHttpClient http) {
+    return builder
         .baseUrl(e.baseUrl())
         .requestFactory(new HttpComponentsClientHttpRequestFactory(http))
         .build();

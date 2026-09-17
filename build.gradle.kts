@@ -1,6 +1,10 @@
 plugins {
   alias(libs.plugins.spring.boot)
-  id("com.incode.service-conventions")
+  id("com.incode.java-conventions")
+  id("com.incode.testing-conventions")
+  id("com.incode.quality-conventions")
+  id("com.incode.contract-conventions")
+  id("com.incode.container-conventions")
 }
 
 dependencies {
@@ -24,6 +28,12 @@ dependencies {
   implementation(libs.flyway.core)
   implementation(libs.flyway.database.postgresql)
   runtimeOnly(libs.postgresql)
+
+  // Compile-time code generation only
+  compileOnly(libs.lombok)
+  annotationProcessor(libs.lombok)
+  testCompileOnly(libs.lombok)
+  testAnnotationProcessor(libs.lombok)
 
   // Static analysis
   checkstyle(libs.checkstyle)

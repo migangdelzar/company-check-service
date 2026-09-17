@@ -22,6 +22,10 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
   private static final String TAKEOVER =
       "if redis.call('exists',KEYS[1])==0 then return redis.call('set',KEYS[1],ARGV[1],'NX','PX',"
           + "ARGV[2]) else return nil end";
+  private static final DefaultRedisScript<String> TAKEOVER_SCRIPT =
+      new DefaultRedisScript<>(TAKEOVER, String.class);
+  private static final DefaultRedisScript<Long> RELEASE_SCRIPT =
+      new DefaultRedisScript<>(RELEASE, Long.class);
   private final Cache<String, VerificationView> l1;
   private final StringRedisTemplate redis;
   private final CoordinationProperties properties;
@@ -80,7 +84,7 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
       }
       String takeover =
           redis.execute(
-              new DefaultRedisScript<>(TAKEOVER, String.class),
+              TAKEOVER_SCRIPT,
               java.util.List.of(leaseKey),
               token,
               String.valueOf(properties.leaseTtl().toMillis()));
@@ -125,8 +129,7 @@ public final class RedisCoordinationAdapter implements CoordinationPort {
     public void close() {
       if (!degraded)
         try {
-          redis.execute(
-              new DefaultRedisScript<>(RELEASE, Long.class), java.util.List.of(key), token);
+          redis.execute(RELEASE_SCRIPT, java.util.List.of(key), token);
         } catch (Exception exception) {
           log.debug("Redis lease release unavailable", exception);
         }

@@ -1,6 +1,7 @@
 package com.incode.verification.adapter.config;
 
 import com.incode.verification.application.port.out.VerificationView;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import java.time.Duration;
@@ -24,15 +25,6 @@ public record CoordinationProperties(
     jitter = jitter == null ? Duration.ZERO : jitter;
     leaseTtl = leaseTtl == null ? Duration.ofSeconds(20) : leaseTtl;
     waiterPoll = waiterPoll == null ? Duration.ofMillis(50) : waiterPoll;
-    if (l1MaximumSize < 1
-        || ttl.isNegative()
-        || (matchTtl != null && matchTtl.isNegative())
-        || (noMatchTtl != null && noMatchTtl.isNegative())
-        || jitter.isNegative()
-        || leaseTtl.isNegative()
-        || waiterPoll.isNegative()
-        || waiterAttempts < 0)
-      throw new IllegalArgumentException("invalid coordination configuration");
     keyPrefix = keyPrefix == null || keyPrefix.isBlank() ? "company-check:" : keyPrefix;
     matchTtl = matchTtl == null ? Duration.ofHours(24) : matchTtl;
     noMatchTtl = noMatchTtl == null ? ttl : noMatchTtl;
@@ -40,5 +32,15 @@ public record CoordinationProperties(
 
   public Duration ttlFor(VerificationView view) {
     return view.company() == null ? noMatchTtl : matchTtl;
+  }
+
+  @AssertTrue(message = "coordination durations must not be negative")
+  public boolean hasValidDurations() {
+    return !ttl.isNegative()
+        && !matchTtl.isNegative()
+        && !noMatchTtl.isNegative()
+        && !jitter.isNegative()
+        && !leaseTtl.isNegative()
+        && !waiterPoll.isNegative();
   }
 }

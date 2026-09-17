@@ -128,11 +128,6 @@ val composeImageVariables =
     "COMPANY_CHECK_PROVIDER_IMAGE",
     "POSTGRES_IMAGE",
     "REDIS_IMAGE",
-    "PROMETHEUS_IMAGE",
-    "MIMIR_IMAGE",
-    "LOKI_IMAGE",
-    "TEMPO_IMAGE",
-    "GRAFANA_IMAGE",
     "LOCUST_IMAGE",
   )
 

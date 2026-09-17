@@ -9,7 +9,6 @@ import java.sql.ResultSet;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
@@ -26,22 +25,22 @@ public final class JdbcVerificationRepository implements VerificationRepository 
   @Override
   public void insertInProgress(Verification v) {
     var e = VerificationEntity.from(v, codec.encode(v.state()), null);
-    try {
-      jdbc.sql(
-              "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) "
-                  + "VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb))")
-          .param("id", e.id())
-          .param("raw", e.rawQuery())
-          .param("normalized", e.normalizedQuery())
-          .param("started", e.startedAt())
-          .param("expires", e.expiresAt())
-          .param("status", e.status())
-          .param("state", e.stateJson())
-          .update();
-    } catch (DataIntegrityViolationException exception) {
+    int inserted =
+        jdbc.sql(
+                "INSERT INTO verifications(id,raw_query,normalized_query,started_at,expires_at,status,state) "
+                    + "VALUES (:id,:raw,:normalized,:started,:expires,:status,CAST(:state AS jsonb)) "
+                    + "ON CONFLICT (id) DO NOTHING")
+            .param("id", e.id())
+            .param("raw", e.rawQuery())
+            .param("normalized", e.normalizedQuery())
+            .param("started", e.startedAt())
+            .param("expires", e.expiresAt())
+            .param("status", e.status())
+            .param("state", e.stateJson())
+            .update();
+    if (inserted == 0)
       throw new com.incode.verification.application.port.out.VerificationAlreadyExistsException(
-          exception);
-    }
+          new IllegalStateException("verification id already exists"));
   }
 
   @Override
@@ -68,7 +67,8 @@ public final class JdbcVerificationRepository implements VerificationRepository 
     var e = VerificationEntity.from(v, codec.encode(v.state()), token);
     return jdbc.sql(
                 "UPDATE verifications SET status=:status,state=CAST(:state AS jsonb),"
-                    + "updated_at=CURRENT_TIMESTAMP WHERE id=:id AND status='IN_PROGRESS' "
+                    + "claim_token=NULL,claimed_at=NULL,updated_at=CURRENT_TIMESTAMP "
+                    + "WHERE id=:id AND status='IN_PROGRESS' "
                     + "AND claim_token=:token")
             .param("status", e.status())
             .param("state", e.stateJson())

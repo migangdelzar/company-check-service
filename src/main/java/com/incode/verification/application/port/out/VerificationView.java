@@ -7,7 +7,9 @@ import com.incode.verification.domain.type.VerificationStatus;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record VerificationView(
     UUID id,
     String rawQuery,

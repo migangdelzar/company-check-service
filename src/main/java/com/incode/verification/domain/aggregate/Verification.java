@@ -34,7 +34,7 @@ public record Verification(
         id, rawQuery, normalized, now, expiresAt, new VerificationState.InProgress());
   }
 
-  public Verification complete(ProviderLookupResult.Success result, Instant now) {
+  public Verification complete(ProviderLookupResult.Success result) {
     requireInProgress();
     List<Company> active = result.companies().stream().filter(Company::isActive).toList();
     return new Verification(
@@ -49,11 +49,18 @@ public record Verification(
             result.provider()));
   }
 
-  public Verification fail(ProviderFailure failure, Instant now) {
+  public Verification complete(ProviderLookupResult.Success result, Instant ignored) {
+    return complete(result);
+  }
+
+  public Verification fail(ProviderFailure failure) {
     requireInProgress();
-    Objects.requireNonNull(now);
     return new Verification(
         id, rawQuery, query, startedAt, expiresAt, new VerificationState.Failed(failure));
+  }
+
+  public Verification fail(ProviderFailure failure, Instant ignored) {
+    return fail(failure);
   }
 
   private void requireInProgress() {

@@ -5,6 +5,7 @@ import com.incode.verification.application.service.ProviderSubmissionException;
 import com.incode.verification.application.service.VerificationConflictException;
 import com.incode.verification.application.service.VerificationNotFoundException;
 import com.incode.verification.domain.valueobject.InvalidQueryException;
+import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.util.stream.Collectors;
 import org.springframework.http.HttpStatus;
@@ -15,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @RestControllerAdvice
@@ -22,11 +24,13 @@ public class ApiExceptionHandler {
   @ExceptionHandler({
     MethodArgumentNotValidException.class,
     MethodArgumentTypeMismatchException.class,
+    HandlerMethodValidationException.class,
+    ConstraintViolationException.class,
     InvalidQueryException.class
   })
   ResponseEntity<ProblemDetail> invalid(Exception exception) {
     var problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail(exception));
-    problem.setType(URI.create("https://example.com/problems/invalid-request"));
+    problem.setType(URI.create("https://www.incode.com/problems/invalid-request"));
     problem.setTitle("Invalid request");
     return ResponseEntity.badRequest()
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -36,7 +40,7 @@ public class ApiExceptionHandler {
   @ExceptionHandler(VerificationNotFoundException.class)
   ResponseEntity<ProblemDetail> notFound(VerificationNotFoundException exception) {
     var problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, exception.getMessage());
-    problem.setType(URI.create("https://example.com/problems/verification-not-found"));
+    problem.setType(URI.create("https://www.incode.com/problems/verification-not-found"));
     problem.setTitle("Verification not found");
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
         .contentType(MediaType.APPLICATION_PROBLEM_JSON)
@@ -83,6 +87,11 @@ public class ApiExceptionHandler {
     if (exception instanceof MethodArgumentNotValidException invalid) {
       return invalid.getBindingResult().getFieldErrors().stream()
           .map(error -> error.getField() + ": " + error.getDefaultMessage())
+          .collect(Collectors.joining(", "));
+    }
+    if (exception instanceof ConstraintViolationException violations) {
+      return violations.getConstraintViolations().stream()
+          .map(violation -> violation.getPropertyPath() + ": " + violation.getMessage())
           .collect(Collectors.joining(", "));
     }
     return "Request parameters are invalid";

@@ -7,7 +7,9 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import lombok.Builder;
 
+@Builder
 public record VerificationResponse(
     UUID verificationId,
     String query,
@@ -24,30 +26,33 @@ public record VerificationResponse(
   }
 
   public static VerificationResponse from(VerificationView view) {
-    return new VerificationResponse(
-        view.id(),
-        view.rawQuery(),
-        view.normalizedQuery(),
-        view.startedAt(),
-        view.expiresAt(),
-        view.status(),
-        CompanyResponse.from(view.company()),
-        view.otherResults().stream().map(CompanyResponse::from).toList(),
-        view.provider() == null ? null : view.provider().name(),
-        view.failure() == null ? null : view.failure().getClass().getSimpleName());
+    return VerificationResponse.builder()
+        .verificationId(view.id())
+        .query(view.rawQuery())
+        .normalizedQuery(view.normalizedQuery())
+        .startedAt(view.startedAt())
+        .expiresAt(view.expiresAt())
+        .status(view.status())
+        .company(CompanyResponse.from(view.company()))
+        .otherResults(view.otherResults().stream().map(CompanyResponse::from).toList())
+        .provider(view.provider() == null ? null : view.provider().name())
+        .failure(view.failure() == null ? null : view.failure().getClass().getSimpleName())
+        .build();
   }
 
+  @Builder
   public record CompanyResponse(
       String cin, String name, LocalDate registrationDate, String address, boolean isActive) {
     static CompanyResponse from(Company company) {
       return company == null
           ? null
-          : new CompanyResponse(
-              company.cin(),
-              company.name(),
-              company.registrationDate(),
-              company.address(),
-              company.isActive());
+          : CompanyResponse.builder()
+              .cin(company.cin())
+              .name(company.name())
+              .registrationDate(company.registrationDate())
+              .address(company.address())
+              .isActive(company.isActive())
+              .build();
     }
   }
 }

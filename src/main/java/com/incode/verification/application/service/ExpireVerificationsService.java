@@ -3,7 +3,9 @@ package com.incode.verification.application.service;
 import com.incode.verification.application.port.in.ExpireVerificationsUseCase;
 import com.incode.verification.application.port.out.VerificationRepository;
 import java.time.Instant;
+import org.springframework.stereotype.Service;
 
+@Service
 public final class ExpireVerificationsService implements ExpireVerificationsUseCase {
   private final VerificationRepository repository;
 

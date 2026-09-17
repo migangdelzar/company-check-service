@@ -18,7 +18,11 @@ class GradleStructureTest {
     String rootBuild = read(SERVICE_ROOT.resolve("build.gradle.kts"));
 
     assertTrue(settings.contains("includeBuild(\"build-logic\")"));
-    assertTrue(rootBuild.contains("id(\"com.incode.service-conventions\")"));
+    assertTrue(rootBuild.contains("id(\"com.incode.java-conventions\")"));
+    assertTrue(rootBuild.contains("id(\"com.incode.testing-conventions\")"));
+    assertTrue(rootBuild.contains("id(\"com.incode.quality-conventions\")"));
+    assertTrue(rootBuild.contains("id(\"com.incode.contract-conventions\")"));
+    assertTrue(rootBuild.contains("id(\"com.incode.container-conventions\")"));
     assertTrue(Files.exists(BUILD_LOGIC_ROOT.resolve("settings.gradle.kts")));
     assertTrue(Files.exists(BUILD_LOGIC_ROOT.resolve("build.gradle.kts")));
     assertTrue(
@@ -30,9 +34,6 @@ class GradleStructureTest {
             BUILD_LOGIC_ROOT.resolve(
                 "src/main/kotlin/com.incode.spring-boot-conventions.gradle.kts")));
     assertFalse(
-        read(BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.service-conventions.gradle.kts"))
-            .contains("spring-boot-conventions"));
-    assertTrue(
         Files.exists(
             BUILD_LOGIC_ROOT.resolve("src/main/kotlin/com.incode.service-conventions.gradle.kts")));
   }

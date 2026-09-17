@@ -1,6 +1,7 @@
 [versions]
 java = "25"
 junit = "5.12.2"
+lombok = "1.18.48"
 junit-platform = "1.12.2"
 checkstyle = "10.21.2"
 spring-boot = "4.1.1"
@@ -22,6 +23,7 @@ spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gra
 spotless-gradle-plugin = { module = "com.diffplug.spotless:spotless-plugin-gradle", version.ref = "spotless" }
 error-prone-gradle-plugin = { module = "net.ltgt.gradle:gradle-errorprone-plugin", version.ref = "error-prone" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
