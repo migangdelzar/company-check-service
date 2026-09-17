@@ -24,6 +24,7 @@ val unitTest = tasks.named<Test>("test")
 val coverageExcludedPaths =
   listOf(
     "com/incode/verification/client/**",
+    "com/incode/verification/config/**",
     "com/incode/verification/repository/**",
   )
 
@@ -77,7 +78,7 @@ tasks.named<JacocoReport>("jacocoTestReport") {
     files(
       classDirectories.files.map { directory ->
         fileTree(directory) {
-          exclude(*coverageExcludedPaths.toTypedArray())
+          exclude(coverageExcludedPaths)
         }
       },
     ),
@@ -95,7 +96,7 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
     files(
       classDirectories.files.map { directory ->
         fileTree(directory) {
-          exclude(*coverageExcludedPaths.toTypedArray())
+          exclude(coverageExcludedPaths)
         }
       },
     ),

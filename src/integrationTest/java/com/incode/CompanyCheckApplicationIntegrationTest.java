@@ -2,10 +2,10 @@ package com.incode;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
-import com.incode.verification.adapter.out.coordination.RedisCoordinationAdapter;
-import com.incode.verification.adapter.out.ratelimit.ProviderRateLimiter;
-import com.incode.verification.adapter.out.ratelimit.RedisProviderRateLimiter;
-import com.incode.verification.application.port.out.CoordinationPort;
+import com.incode.verification.repository.CoordinationRepository;
+import com.incode.verification.repository.coordination.RedisCoordinationRepository;
+import com.incode.verification.repository.ratelimit.ProviderRateLimiter;
+import com.incode.verification.repository.ratelimit.RedisProviderRateLimiter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -41,7 +41,8 @@ class CompanyCheckApplicationIntegrationTest {
 
   @Test
   void startsTheDistributedApplicationAgainstPostgresAndRedis() {
-    assertInstanceOf(RedisCoordinationAdapter.class, context.getBean(CoordinationPort.class));
+    assertInstanceOf(
+        RedisCoordinationRepository.class, context.getBean(CoordinationRepository.class));
     assertInstanceOf(RedisProviderRateLimiter.class, context.getBean(ProviderRateLimiter.class));
   }
 }

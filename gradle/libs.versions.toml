@@ -16,7 +16,6 @@ detekt = "1.23.8"
 ktlint = "1.5.0"
 graalvm-native = "1.1.5"
 archunit = "1.4.1"
-spring-modulith = "2.1.1"
 testcontainers = "1.21.3"
 caffeine = "3.2.1"
 resilience4j = "2.4.0"
@@ -32,7 +31,6 @@ lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
-spring-modulith-core = { module = "org.springframework.modulith:spring-modulith-core", version.ref = "spring-modulith" }
 spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
 spring-boot-starter-data-jdbc-test = { module = "org.springframework.boot:spring-boot-starter-data-jdbc-test" }
@@ -56,7 +54,6 @@ spring-boot-starter-webmvc-test = { module = "org.springframework.boot:spring-bo
 httpclient5 = { module = "org.apache.httpcomponents.client5:httpclient5", version.ref = "httpclient5" }
 uuid-creator = { module = "com.github.f4b6a3:uuid-creator", version.ref = "uuid-creator" }
 resilience4j-spring-boot4 = { module = "io.github.resilience4j:resilience4j-spring-boot4", version.ref = "resilience4j" }
-spring-modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test", version.ref = "spring-modulith" }
 testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter", version.ref = "testcontainers" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 testcontainers-postgresql = { module = "org.testcontainers:postgresql", version.ref = "testcontainers" }

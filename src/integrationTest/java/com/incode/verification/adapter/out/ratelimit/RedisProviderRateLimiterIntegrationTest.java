@@ -1,10 +1,10 @@
-package com.incode.verification.adapter.out.ratelimit;
+package com.incode.verification.repository.ratelimit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.incode.verification.configuration.provider.ProviderRateLimitProperties;
-import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.config.ProviderRateLimitProperties;
+import com.incode.verification.service.model.ProviderType;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

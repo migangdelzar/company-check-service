@@ -8,19 +8,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.incode.verification.adapter.in.web.BackendServiceController;
-import com.incode.verification.adapter.in.web.VerificationController;
-import com.incode.verification.application.port.in.GetVerificationUseCase;
-import com.incode.verification.application.port.in.StartVerificationCommand;
-import com.incode.verification.application.port.in.StartVerificationUseCase;
-import com.incode.verification.application.port.out.InboundRateLimiter;
-import com.incode.verification.application.result.VerificationResult;
-import com.incode.verification.domain.company.Company;
-import com.incode.verification.domain.provider.ProviderType;
-import com.incode.verification.domain.verification.VerificationStatus;
+import com.incode.verification.controller.BackendServiceController;
+import com.incode.verification.controller.VerificationController;
+import com.incode.verification.repository.InboundRateLimiter;
+import com.incode.verification.service.VerificationService;
+import com.incode.verification.service.model.Company;
+import com.incode.verification.service.model.ProviderType;
+import com.incode.verification.service.model.StartVerificationCommand;
+import com.incode.verification.service.model.VerificationResult;
+import com.incode.verification.service.model.VerificationStatus;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,9 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class BackendApiContractTest {
   @Autowired private MockMvc mvc;
 
-  @MockitoBean private GetVerificationUseCase getVerification;
-
-  @MockitoBean private StartVerificationUseCase startVerification;
+  @MockitoBean private VerificationService verification;
 
   @MockitoBean private InboundRateLimiter inboundRateLimiter;
 
@@ -50,7 +48,7 @@ class BackendApiContractTest {
   @Test
   void startsVerificationWithStableResponseContract() throws Exception {
     var id = UUID.randomUUID();
-    when(startVerification.start(new StartVerificationCommand(id, "CJQUNXGW")))
+    when(verification.start(new StartVerificationCommand(id, "CJQUNXGW")))
         .thenReturn(completedView(id));
 
     mvc.perform(
@@ -65,13 +63,13 @@ class BackendApiContractTest {
         .andExpect(jsonPath("$.provider").value("FREE"))
         .andExpect(jsonPath("$.company.cin").value("CJQUNXGW"));
 
-    verify(startVerification).start(new StartVerificationCommand(id, "CJQUNXGW"));
+    verify(verification).start(new StartVerificationCommand(id, "CJQUNXGW"));
   }
 
   @Test
   void readsVerificationWithStableResponseContract() throws Exception {
     var id = UUID.randomUUID();
-    when(getVerification.get(id)).thenReturn(completedView(id));
+    when(verification.get(id)).thenReturn(completedView(id));
 
     mvc.perform(get("/verifications/{verificationId}", id))
         .andExpect(status().isOk())
@@ -81,7 +79,7 @@ class BackendApiContractTest {
         .andExpect(jsonPath("$.status").value("COMPLETED"))
         .andExpect(jsonPath("$.company.cin").value("CJQUNXGW"));
 
-    verify(getVerification).get(id);
+    verify(verification).get(id);
   }
 
   @Test
@@ -105,7 +103,7 @@ class BackendApiContractTest {
         now.plusSeconds(600),
         VerificationStatus.COMPLETED,
         new Company("CJQUNXGW", "Example Company", LocalDate.of(2020, 1, 1), "Mexico", true),
-        null,
+        List.of(),
         ProviderType.FREE,
         null);
   }

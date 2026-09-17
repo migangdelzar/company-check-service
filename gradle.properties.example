@@ -33,5 +33,9 @@ imageSmokeTimeoutSeconds=15
 # testcontainersDockerSocketOverride=/var/run/docker.sock
 
 # JVM is the default. Native is opt-in; the only accepted optimization is b.
+# `nativeCompile` automatically provisions a Java 25 native-image-capable JDK
+# through the Foojay Gradle toolchain resolver; no local GraalVM installation is
+# required. Paketo performs the equivalent provisioning inside native image
+# builder containers for `image -PimageVariant=native`.
 # imageVariant=native
 # nativeOptimization=b

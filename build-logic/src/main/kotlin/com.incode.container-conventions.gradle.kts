@@ -141,7 +141,10 @@ tasks.named<BootBuildImage>("bootBuildImage") {
     },
   )
   environment.put("BPE_DEFAULT_BPL_JVM_HEAD_ROOM", providers.provider { "10" })
-  environment.put("BP_NATIVE_IMAGE", validatedVariant.map { (it == "native").toString() })
+  if (validatedVariant.get() == "native") {
+    environment.put("BP_NATIVE_IMAGE", "true")
+    environment.put("BP_SPRING_AOT_ENABLED", "true")
+  }
   environment.putAll(
     validatedVariant.flatMap { variant ->
       if (variant == "native") {

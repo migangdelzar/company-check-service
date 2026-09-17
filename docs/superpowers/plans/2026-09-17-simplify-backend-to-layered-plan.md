@@ -392,7 +392,7 @@ Use one BusinessException base, focused domain exceptions, and one GlobalExcepti
 - Delete: src/test/java/com/incode/verification/architecture/AdapterPackageStructureTest.java
 - Delete: src/test/java/com/incode/verification/architecture/DomainPackageStructureTest.java
 - Delete: src/test/java/com/incode/verification/architecture/HexagonalDependencyTest.java
-- Modify: src/test/java/com/incode/verification/architecture/ModulithArchitectureTest.java
+- Delete: src/test/java/com/incode/verification/architecture/ModulithArchitectureTest.java
 - Create: src/test/java/com/incode/verification/architecture/LayeredDependencyTest.java
 - Create: src/test/java/com/incode/verification/architecture/LayerPackageStructureTest.java
 
@@ -412,9 +412,9 @@ Assert the dependency rules above and assert the old directories do not exist.
 
     ./gradlew test --tests com.incode.verification.architecture.LayeredDependencyTest --tests com.incode.verification.architecture.LayerPackageStructureTest --no-daemon --console=plain
 
-- [x] **Step 3: Update Modulith boundaries to the new package names.**
+- [x] **Step 3: Replace module verification with the layered rules.**
 
-Keep the application as one module unless the current Modulith test identifies a real boundary violation.
+Keep the service model framework-free and enforce the package boundaries with ArchUnit.
 
 - [x] **Step 4: Run all architecture tests and verify GREEN.**
 

@@ -10,13 +10,32 @@ plugins {
   id("com.incode.container-conventions")
 }
 
-java.toolchain.languageVersion.set(
+group = "com.incode.verification"
+
+val javaLanguageVersion =
   JavaLanguageVersion.of(
     libs.versions.java
       .get()
       .toInt(),
-  ),
-)
+  )
+
+java.toolchain.languageVersion.set(javaLanguageVersion)
+
+graalvmNative {
+  // Keep the regular JVM toolchain independent from the native-image toolchain.
+  // The Foojay resolver provisions a matching native-image-capable JDK on demand.
+  toolchainDetection.set(true)
+  binaries {
+    named("main") {
+      javaLauncher.set(
+        javaToolchains.launcherFor {
+          languageVersion.set(javaLanguageVersion)
+          nativeImageCapable.set(true)
+        },
+      )
+    }
+  }
+}
 
 dependencies {
   // Platform and framework BOMs
@@ -59,8 +78,6 @@ dependencies {
   // Tests
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.archunit.junit5)
-  testImplementation(libs.spring.modulith.core)
-  testImplementation(libs.spring.modulith.starter.test)
   testRuntimeOnly(libs.junit.platform.launcher)
   testImplementation(libs.spring.boot.starter.test)
   testImplementation(libs.spring.boot.starter.webmvc.test)

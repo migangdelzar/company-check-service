@@ -1,11 +1,11 @@
-package com.incode.verification.adapter.out.persistence;
+package com.incode.verification.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.incode.verification.domain.query.NormalizedQuery;
-import com.incode.verification.domain.verification.Verification;
+import com.incode.verification.service.model.NormalizedQuery;
+import com.incode.verification.service.model.Verification;
 import java.time.Instant;
 import java.util.UUID;
 import javax.sql.DataSource;

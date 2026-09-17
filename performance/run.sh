@@ -152,7 +152,8 @@ set +a
 (( artifacts_dir_was_configured )) && PERFORMANCE_ARTIFACTS_DIR="$configured_artifacts_dir"
 (( project_name_was_configured )) && COMPOSE_PROJECT_NAME="$configured_project_name"
 if (( ! project_name_was_configured )); then
-  COMPOSE_PROJECT_NAME="${PERFORMANCE_COMPOSE_PROJECT_NAME:-company-check-performance-${BASHPID}}"
+  process_id="$$"
+  COMPOSE_PROJECT_NAME="${PERFORMANCE_COMPOSE_PROJECT_NAME:-company-check-performance-${process_id}}"
   export COMPOSE_PROJECT_NAME
 fi
 
