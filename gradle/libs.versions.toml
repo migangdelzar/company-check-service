@@ -4,6 +4,7 @@ junit = "5.12.2"
 lombok = "1.18.48"
 junit-platform = "1.12.2"
 checkstyle = "11.0.0"
+plexus-utils = "3.6.1"
 spring-boot = "4.1.1"
 spotless = "7.2.1"
 google-java-format = "1.28.0"
@@ -13,6 +14,7 @@ error-prone-core = "2.36.0"
 nullaway = "0.13.5"
 nullaway-plugin = "3.1.0"
 detekt = "1.23.8"
+detekt-jvm-target = "22"
 ktlint = "1.5.0"
 graalvm-native = "1.1.5"
 archunit = "1.4.1"
@@ -30,6 +32,7 @@ junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "jun
 lombok = { module = "org.projectlombok:lombok", version.ref = "lombok" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junit-platform" }
 checkstyle = { module = "com.puppycrawl.tools:checkstyle", version.ref = "checkstyle" }
+plexus-utils = { module = "org.codehaus.plexus:plexus-utils", version.ref = "plexus-utils" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 spring-boot-starter-jdbc = { module = "org.springframework.boot:spring-boot-starter-jdbc" }
 spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
@@ -41,7 +44,7 @@ spring-boot-starter-validation = { module = "org.springframework.boot:spring-boo
 spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
 spring-boot-starter-opentelemetry = { module = "org.springframework.boot:spring-boot-starter-opentelemetry" }
 spring-boot-starter-cache = { module = "org.springframework.boot:spring-boot-starter-cache" }
-spring-boot-starter-aspectj = { module = "org.springframework.boot:spring-boot-starter-aspectj", version.ref = "spring-boot" }
+spring-boot-starter-aspectj = { module = "org.springframework.boot:spring-boot-starter-aspectj" }
 micrometer-registry-prometheus = { module = "io.micrometer:micrometer-registry-prometheus" }
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind" }

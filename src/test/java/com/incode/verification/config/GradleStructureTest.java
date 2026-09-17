@@ -110,9 +110,9 @@ class GradleStructureTest {
     assertTrue(catalog.contains("spring-boot-gradle-plugin"));
     assertTrue(catalog.contains("spotless-gradle-plugin"));
     assertTrue(catalog.contains("error-prone-gradle-plugin"));
-    assertTrue(buildLogic.contains("findLibrary(\"spring-boot-gradle-plugin\")"));
-    assertTrue(buildLogic.contains("findLibrary(\"spotless-gradle-plugin\")"));
-    assertTrue(buildLogic.contains("findLibrary(\"error-prone-gradle-plugin\")"));
+    assertTrue(buildLogic.contains("libs.spring.boot.gradle.plugin"));
+    assertTrue(buildLogic.contains("libs.spotless.gradle.plugin"));
+    assertTrue(buildLogic.contains("libs.error.prone.gradle.plugin"));
     assertTrue(quality.contains("findVersion(\"google-java-format\")"));
     assertTrue(contracts.contains("findVersion(\"redocly-cli\")"));
     assertTrue(rootBuild.contains("libs.versions.java"));

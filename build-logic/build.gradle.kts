@@ -1,5 +1,4 @@
 import io.gitlab.arturbosch.detekt.Detekt
-import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.testing.Test
 
@@ -9,16 +8,14 @@ plugins {
   alias(libs.plugins.spotless)
 }
 
-val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-
 dependencies {
-  implementation(libsCatalog.findLibrary("spring-boot-gradle-plugin").get())
-  implementation(libsCatalog.findLibrary("spotless-gradle-plugin").get())
-  implementation(libsCatalog.findLibrary("error-prone-gradle-plugin").get())
-  implementation(libsCatalog.findLibrary("nullaway-gradle-plugin").get())
+  implementation(libs.spring.boot.gradle.plugin)
+  implementation(libs.spotless.gradle.plugin)
+  implementation(libs.error.prone.gradle.plugin)
+  implementation(libs.nullaway.gradle.plugin)
   testImplementation(gradleTestKit())
-  testImplementation(libsCatalog.findLibrary("junit-jupiter").get())
-  testRuntimeOnly(libsCatalog.findLibrary("junit-platform-launcher").get())
+  testImplementation(libs.junit.jupiter)
+  testRuntimeOnly(libs.junit.platform.launcher)
 }
 
 detekt {
@@ -30,19 +27,21 @@ detekt {
 // Detekt currently supports JVM targets through 22 even when the build runs on
 // a newer Java toolchain. Keep the analyzer target compatible with its CLI.
 tasks.withType<Detekt>().configureEach {
-  jvmTarget = "22"
+  jvmTarget =
+    libs.versions.detekt.jvm.target
+      .get()
 }
 
 spotless {
   kotlin {
     target("src/**/*.kt")
-    ktlint(libsCatalog.findVersion("ktlint").get().requiredVersion)
+    ktlint(libs.versions.ktlint.get())
     trimTrailingWhitespace()
     endWithNewline()
   }
   kotlinGradle {
     target("*.gradle.kts", "src/**/*.gradle.kts")
-    ktlint(libsCatalog.findVersion("ktlint").get().requiredVersion)
+    ktlint(libs.versions.ktlint.get())
     trimTrailingWhitespace()
     endWithNewline()
   }

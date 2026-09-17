@@ -41,6 +41,14 @@ tasks.withType<Test>().configureEach {
   group = if (name == "test") "verification" else "integration"
 }
 
+val testSuiteExtraImplementation =
+  mapOf(
+    "integrationTest" to
+      listOf("testcontainers-junit-jupiter", "testcontainers", "testcontainers-postgresql"),
+    "contractTest" to emptyList(),
+    "e2eTest" to emptyList(),
+  )
+
 testing {
   suites {
     testSuiteNames.forEach { suiteName ->
@@ -49,10 +57,8 @@ testing {
         sources { java.setSrcDirs(listOf("src/$suiteName/java")) }
         dependencies {
           implementation(project())
-          if (suiteName == "integrationTest") {
-            implementation(libsCatalog.findLibrary("testcontainers-junit-jupiter").get())
-            implementation(libsCatalog.findLibrary("testcontainers").get())
-            implementation(libsCatalog.findLibrary("testcontainers-postgresql").get())
+          testSuiteExtraImplementation.getValue(suiteName).forEach { alias ->
+            implementation(libsCatalog.findLibrary(alias).get())
           }
         }
         targets.configureEach {

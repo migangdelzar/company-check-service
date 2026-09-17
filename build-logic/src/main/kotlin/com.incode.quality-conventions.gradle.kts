@@ -21,6 +21,16 @@ val buildLogicCheckReference =
     .firstOrNull { includedBuild -> includedBuild.projectDir == rootProject.file("build-logic") }
     ?.task(":check")
 val unitTest = tasks.named<Test>("test")
+val qualityAssuranceTasks =
+  listOf(
+    "spotlessCheck",
+    "checkstyleMain",
+    "checkstyleTest",
+    "checkstyleTestFixtures",
+    "test",
+    "jacocoTestReport",
+    "jacocoTestCoverageVerification",
+  )
 val coverageExcludedPaths =
   listOf(
     "com/incode/verification/client/**",
@@ -116,27 +126,11 @@ tasks.withType<JacocoCoverageVerification>().configureEach {
 tasks.register("unitCheck") {
   group = "verification"
   description = "Runs formatting, static analysis, unit tests, and coverage checks."
-  dependsOn(
-    "spotlessCheck",
-    "checkstyleMain",
-    "checkstyleTest",
-    "checkstyleTestFixtures",
-    "test",
-    "jacocoTestReport",
-    "jacocoTestCoverageVerification",
-  )
+  dependsOn(qualityAssuranceTasks)
 }
 
 tasks.named("check") {
-  dependsOn(
-    "spotlessCheck",
-    "checkstyleMain",
-    "checkstyleTest",
-    "checkstyleTestFixtures",
-    "test",
-    "jacocoTestReport",
-    "jacocoTestCoverageVerification",
-  )
+  dependsOn(qualityAssuranceTasks)
 }
 
 val qualityGate =

@@ -1,3 +1,4 @@
+import org.gradle.api.Project
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 import java.time.Duration
@@ -145,9 +146,10 @@ val composeImageVariables =
 tasks.register("composeDigestCheck") {
   group = "containers"
   description = "Checks that all Compose image inputs are immutable digest references."
+  val workspaceComposeDir = rootProject.layout.projectDirectory.dir("..")
   inputs.files(
     listOf("compose.yaml", "compose.single.yaml", "compose.distributed.yaml")
-      .map { rootProject.layout.projectDirectory.file("../$it") },
+      .map { workspaceComposeDir.file(it) },
   )
   doLast {
     composeImageVariables.forEach { variable ->
@@ -168,17 +170,19 @@ val imageSmokeTimeoutSeconds =
       } ?: error("imageSmokeTimeoutSeconds must be an integer")
     }.orElse(15)
 
-fun docker(arguments: List<String>): String {
-  val process =
-    ProcessBuilder(listOf("docker") + arguments)
-      .redirectErrorStream(true)
-      .start()
+fun docker(
+  project: Project,
+  arguments: List<String>,
+): String {
+  val execOutput =
+    project.providers.exec {
+      commandLine(listOf("docker") + arguments)
+    }
   val output =
-    process.inputStream
-      .readBytes()
-      .toString(Charsets.UTF_8)
+    execOutput.standardOutput.asText
+      .get()
       .trim()
-  check(process.waitFor() == 0) {
+  check(execOutput.result.get().exitValue == 0) {
     "docker ${arguments.joinToString(" ")} failed: $output"
   }
   return output
@@ -197,9 +201,10 @@ tasks.register("imageSmoke") {
   doLast {
     val image = configuredImageName.get()
     val timeout = imageSmokeTimeoutSeconds.get()
-    docker(listOf("image", "inspect", image))
+    docker(project, listOf("image", "inspect", image))
     val containerId =
       docker(
+        project,
         listOf(
           "create",
           "--read-only",
@@ -209,19 +214,22 @@ tasks.register("imageSmoke") {
         ),
       )
     try {
-      docker(listOf("start", containerId))
+      docker(project, listOf("start", containerId))
       val deadline = System.nanoTime() + Duration.ofSeconds(timeout).toNanos()
       var running = true
       while (running && System.nanoTime() < deadline) {
-        running = docker(listOf("inspect", "--format", "{{.State.Running}}", containerId)) == "true"
+        running = docker(project, listOf("inspect", "--format", "{{.State.Running}}", containerId)) == "true"
         if (running) Thread.sleep(100)
       }
       check(!running) { "Image did not reach a terminal state within ${timeout}s" }
       logger.lifecycle(
-        docker(listOf("inspect", "--format", "exit={{.State.ExitCode}} user={{.Config.User}}", containerId)),
+        docker(
+          project,
+          listOf("inspect", "--format", "exit={{.State.ExitCode}} user={{.Config.User}}", containerId),
+        ),
       )
     } finally {
-      runCatching { docker(listOf("rm", "-f", containerId)) }
+      runCatching { docker(project, listOf("rm", "-f", containerId)) }
     }
   }
 }
