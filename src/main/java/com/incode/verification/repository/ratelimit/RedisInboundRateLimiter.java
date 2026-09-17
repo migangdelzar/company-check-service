@@ -1,6 +1,6 @@
 package com.incode.verification.repository.ratelimit;
 
-import com.incode.verification.config.InboundRateLimitProperties;
+import com.incode.verification.config.ratelimit.InboundRateLimitProperties;
 import com.incode.verification.repository.InboundRateLimiter;
 import java.time.Duration;
 import java.util.List;

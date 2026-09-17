@@ -1,7 +1,7 @@
 package com.incode.verification.repository.coordination;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.incode.verification.config.CoordinationProperties;
+import com.incode.verification.config.coordination.CoordinationProperties;
 import com.incode.verification.repository.CoordinationRepository;
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.VerificationResult;

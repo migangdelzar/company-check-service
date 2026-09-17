@@ -1,8 +1,8 @@
 package com.incode;
 
-import com.incode.verification.config.CaffeineRuntimeHints;
-import com.incode.verification.config.HibernateValidatorRuntimeHints;
-import com.incode.verification.config.ProviderRuntimeHints;
+import com.incode.verification.config.hints.CaffeineRuntimeHints;
+import com.incode.verification.config.hints.HibernateValidatorRuntimeHints;
+import com.incode.verification.config.hints.ProviderRuntimeHints;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;

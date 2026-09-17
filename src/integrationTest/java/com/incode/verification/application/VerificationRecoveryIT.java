@@ -1,4 +1,4 @@
-package com.incode.verification.controller;
+package com.incode.verification.application;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -7,6 +7,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.incode.verification.repository.ExpirationLock;
+import com.incode.verification.scheduler.VerificationExpirationScheduler;
 import com.incode.verification.service.ExpirationService;
 import java.time.Clock;
 import java.time.Instant;

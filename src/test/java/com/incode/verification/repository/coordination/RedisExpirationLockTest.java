@@ -9,7 +9,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.incode.verification.config.ExpirationLockProperties;
+import com.incode.verification.config.coordination.ExpirationLockProperties;
 import com.incode.verification.repository.ExpirationLock;
 import java.time.Duration;
 import java.util.List;

@@ -7,7 +7,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.incode.verification.config.ProviderRateLimitProperties;
+import com.incode.verification.config.provider.ProviderRateLimitProperties;
 import com.incode.verification.service.model.ProviderType;
 import java.time.Duration;
 import java.util.List;

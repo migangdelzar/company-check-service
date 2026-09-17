@@ -3,7 +3,7 @@ package com.incode.verification.config;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.incode.verification.controller.VerificationExpirationScheduler;
+import com.incode.verification.scheduler.VerificationExpirationScheduler;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 
 class IncodeCompositionTest {
   @Test
-  void compositionIsExplicitAndSchedulingIsControllerOwned() {
+  void compositionIsExplicitAndSchedulingIsAComponent() {
     assertFalse(
         Configuration.class
             .cast(ApplicationConfiguration.class.getAnnotation(Configuration.class))

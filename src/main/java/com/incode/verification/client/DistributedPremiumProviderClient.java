@@ -1,6 +1,6 @@
 package com.incode.verification.client;
 
-import com.incode.verification.config.ProviderEndpointProperties;
+import com.incode.verification.config.provider.ProviderEndpointProperties;
 import com.incode.verification.exception.ProviderRateLimitExceededException;
 import com.incode.verification.repository.ratelimit.ProviderRateLimiter;
 import com.incode.verification.service.model.NormalizedQuery;

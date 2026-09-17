@@ -1,6 +1,6 @@
 package com.incode.verification.client;
 
-import com.incode.verification.config.ProviderEndpointProperties;
+import com.incode.verification.config.provider.ProviderEndpointProperties;
 import com.incode.verification.exception.ProviderContractException;
 import com.incode.verification.exception.ProviderTransientException;
 import com.incode.verification.service.model.Company;

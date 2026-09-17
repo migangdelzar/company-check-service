@@ -6,7 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.incode.verification.config.InboundRateLimitProperties;
+import com.incode.verification.config.ratelimit.InboundRateLimitProperties;
 import com.incode.verification.repository.InboundRateLimiter;
 import java.time.Duration;
 import java.util.List;

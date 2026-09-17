@@ -6,6 +6,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.incode.verification.client.ProviderClient;
+import com.incode.verification.config.coordination.CoordinationConfiguration;
+import com.incode.verification.config.coordination.CoordinationProperties;
+import com.incode.verification.config.coordination.ExpirationLockConfiguration;
+import com.incode.verification.config.coordination.ExpirationLockProperties;
+import com.incode.verification.config.coordination.LocalCoordinationConfiguration;
+import com.incode.verification.config.provider.DistributedProviderResilienceConfiguration;
+import com.incode.verification.config.provider.ProviderEndpointProperties;
+import com.incode.verification.config.provider.ProviderProperties;
+import com.incode.verification.config.provider.ProviderRateLimitProperties;
+import com.incode.verification.config.provider.ProviderResilienceConfiguration;
+import com.incode.verification.config.ratelimit.InboundRateLimitConfiguration;
 import com.incode.verification.repository.CoordinationRepository;
 import com.incode.verification.repository.ExpirationLock;
 import com.incode.verification.repository.InboundRateLimiter;

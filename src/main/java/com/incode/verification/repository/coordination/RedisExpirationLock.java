@@ -1,6 +1,6 @@
 package com.incode.verification.repository.coordination;
 
-import com.incode.verification.config.ExpirationLockProperties;
+import com.incode.verification.config.coordination.ExpirationLockProperties;
 import com.incode.verification.repository.ExpirationLock;
 import java.util.List;
 import java.util.UUID;

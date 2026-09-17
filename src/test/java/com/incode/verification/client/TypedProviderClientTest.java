@@ -7,7 +7,7 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import com.incode.verification.config.ProviderEndpointProperties;
+import com.incode.verification.config.provider.ProviderEndpointProperties;
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.ProviderResult;
 import com.incode.verification.service.model.ProviderType;

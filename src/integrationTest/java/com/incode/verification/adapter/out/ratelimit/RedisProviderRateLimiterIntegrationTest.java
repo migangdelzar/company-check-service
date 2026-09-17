@@ -3,7 +3,7 @@ package com.incode.verification.repository.ratelimit;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.incode.verification.config.ProviderRateLimitProperties;
+import com.incode.verification.config.provider.ProviderRateLimitProperties;
 import com.incode.verification.service.model.ProviderType;
 import java.time.Duration;
 import org.junit.jupiter.api.AfterEach;

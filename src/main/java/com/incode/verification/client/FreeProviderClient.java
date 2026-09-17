@@ -1,7 +1,7 @@
 package com.incode.verification.client;
 
 import com.incode.verification.client.dto.FreeCompanyResponse;
-import com.incode.verification.config.ProviderEndpointProperties;
+import com.incode.verification.config.provider.ProviderEndpointProperties;
 import com.incode.verification.mapper.ProviderMapper;
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.ProviderResult;
