@@ -2,9 +2,12 @@ import org.gradle.api.plugins.JavaPluginExtension
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 import java.time.Duration
 
+// Image configuration
 val imageVariant = providers.gradleProperty("imageVariant").orElse("jvm")
 val configuredImageName =
   providers.gradleProperty("imageName").orElse("company-check-service:${project.version}")
+
+// Paketo configuration
 val publishImage =
   providers
     .gradleProperty("publishImage")
@@ -48,6 +51,8 @@ val paketoRunImage =
   providers.gradleProperty("paketoRunImage").map { image ->
     requireDigestImage("paketoRunImage", image)
   }
+
+// Requested-task validation
 val imageTaskRequested =
   gradle.startParameter.taskNames.any { task ->
     task.substringAfterLast(':') in setOf("image", "imageSmoke", "containerCheck", "bootBuildImage")
@@ -72,6 +77,8 @@ val validatedVariant =
     }
     variant
   }
+
+// Build metadata
 val javaExtension = extensions.getByType<JavaPluginExtension>()
 val imageLabels =
   listOf(
