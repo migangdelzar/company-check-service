@@ -3,7 +3,7 @@ package com.incode.verification.architecture;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import com.incode.verification.domain.aggregate.Verification;
+import com.incode.verification.domain.verification.Verification;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;

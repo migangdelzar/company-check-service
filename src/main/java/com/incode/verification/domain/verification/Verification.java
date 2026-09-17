@@ -1,14 +1,14 @@
-package com.incode.verification.domain.aggregate;
+package com.incode.verification.domain.verification;
 
-import com.incode.verification.domain.entity.Company;
-import com.incode.verification.domain.type.ProviderFailure;
-import com.incode.verification.domain.type.ProviderLookupResult;
-import com.incode.verification.domain.type.VerificationState;
-import com.incode.verification.domain.valueobject.NormalizedQuery;
+import com.incode.verification.domain.company.Company;
+import com.incode.verification.domain.provider.ProviderFailure;
+import com.incode.verification.domain.provider.ProviderResult;
+import com.incode.verification.domain.query.NormalizedQuery;
 import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import org.jspecify.annotations.Nullable;
 
 public record Verification(
     UUID id,
@@ -24,8 +24,9 @@ public record Verification(
     Objects.requireNonNull(startedAt);
     Objects.requireNonNull(expiresAt);
     Objects.requireNonNull(state);
-    if (!expiresAt.isAfter(startedAt))
+    if (!expiresAt.isAfter(startedAt)) {
       throw new IllegalArgumentException("expiresAt must be after startedAt");
+    }
   }
 
   public static Verification start(
@@ -34,7 +35,7 @@ public record Verification(
         id, rawQuery, normalized, now, expiresAt, new VerificationState.InProgress());
   }
 
-  public Verification complete(ProviderLookupResult.Success result) {
+  public Verification complete(ProviderResult.Success result) {
     requireInProgress();
     List<Company> active = result.companies().stream().filter(Company::isActive).toList();
     return new Verification(
@@ -44,13 +45,16 @@ public record Verification(
         startedAt,
         expiresAt,
         new VerificationState.Completed(
-            active.isEmpty() ? null : active.getFirst(),
-            active.size() < 2 ? List.of() : active.subList(1, active.size()),
+            first(active),
+            others(active),
             result.provider()));
   }
 
-  public Verification complete(ProviderLookupResult.Success result, Instant ignored) {
-    return complete(result);
+  public Verification apply(ProviderResult result) {
+    return switch (result) {
+      case ProviderResult.Success success -> complete(success);
+      case ProviderResult.Failure failure -> fail(failure.failure());
+    };
   }
 
   public Verification fail(ProviderFailure failure) {
@@ -59,12 +63,23 @@ public record Verification(
         id, rawQuery, query, startedAt, expiresAt, new VerificationState.Failed(failure));
   }
 
-  public Verification fail(ProviderFailure failure, Instant ignored) {
-    return fail(failure);
+  private void requireInProgress() {
+    if (!(state instanceof VerificationState.InProgress)) {
+      throw new IllegalStateException("verification is terminal");
+    }
   }
 
-  private void requireInProgress() {
-    if (!(state instanceof VerificationState.InProgress))
-      throw new IllegalStateException("verification is terminal");
+  private static @Nullable Company first(List<Company> companies) {
+    if (companies.isEmpty()) {
+      return null;
+    }
+    return companies.getFirst();
+  }
+
+  private static List<Company> others(List<Company> companies) {
+    if (companies.size() < 2) {
+      return List.of();
+    }
+    return companies.subList(1, companies.size());
   }
 }

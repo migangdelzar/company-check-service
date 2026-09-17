@@ -1,12 +1,12 @@
 package com.incode.verification.application.service;
 
-import com.incode.verification.domain.type.ProviderFailure;
+import com.incode.verification.domain.provider.ProviderFailure;
 
-public final class ProviderSubmissionException extends RuntimeException {
+public final class ProviderSubmissionException extends VerificationException {
   private final ProviderFailure failure;
 
   public ProviderSubmissionException(ProviderFailure failure, String message) {
-    super(message);
+    super(status(failure), title(failure), code(failure), message);
     this.failure = failure;
   }
 
@@ -14,17 +14,20 @@ public final class ProviderSubmissionException extends RuntimeException {
     return failure;
   }
 
-  public int httpStatus() {
-    return failure instanceof ProviderFailure.ClientError ? 502 : 503;
+  private static int status(ProviderFailure failure) {
+    if (failure instanceof ProviderFailure.ClientError) {
+      return 502;
+    }
+    return 503;
   }
 
-  public String code() {
+  private static String code(ProviderFailure failure) {
     return failure instanceof ProviderFailure.ClientError
         ? "PROVIDER_CLIENT_ERROR"
         : "PROVIDERS_UNAVAILABLE";
   }
 
-  public String title() {
+  private static String title(ProviderFailure failure) {
     return failure instanceof ProviderFailure.ClientError
         ? "Provider client error"
         : "Providers unavailable";

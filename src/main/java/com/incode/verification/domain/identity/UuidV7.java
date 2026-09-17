@@ -1,4 +1,4 @@
-package com.incode.verification.domain.valueobject;
+package com.incode.verification.domain.identity;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 import java.util.UUID;

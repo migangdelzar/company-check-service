@@ -1,4 +1,4 @@
-package com.incode.verification.domain.type;
+package com.incode.verification.domain.provider;
 
 public sealed interface ProviderFailure
     permits ProviderFailure.ClientError,

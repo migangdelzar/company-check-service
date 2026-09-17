@@ -1,10 +1,7 @@
 package com.incode.verification.application.port.in;
 
-import com.incode.verification.application.port.out.VerificationView;
-import java.util.UUID;
+import com.incode.verification.application.result.VerificationResult;
 
 public interface StartVerificationUseCase {
-  VerificationView start(StartVerificationCommand command);
-
-  record StartVerificationCommand(UUID verificationId, String query) {}
+  VerificationResult start(StartVerificationCommand command);
 }

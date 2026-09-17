@@ -1,22 +1,29 @@
 package com.incode.verification.application.port.out;
 
-import com.incode.verification.domain.valueobject.LookupKey;
+import com.incode.verification.application.result.VerificationResult;
+import com.incode.verification.domain.query.NormalizedQuery;
 import java.util.Optional;
 
 public interface CoordinationPort {
-  Lease acquire(LookupKey key);
+  /**
+   * Acquires coordination for a normalized query.
+   *
+   * @param query normalized query to coordinate
+   * @return a lease that must be closed by the caller
+   */
+  Lease acquire(NormalizedQuery query);
 
-  Optional<VerificationView> cached(LookupKey key);
+  Optional<VerificationResult> get(NormalizedQuery query);
 
-  void cache(LookupKey key, VerificationView view);
+  VerificationResult put(NormalizedQuery query, VerificationResult result);
 
   interface Lease extends AutoCloseable {
     boolean acquired();
 
     /**
-     * Redis is unavailable; callers must not invoke an external provider.
+     * Indicates Redis is unavailable and callers must not invoke an external provider.
      *
-     * @return whether coordination is degraded and external ownership must be refused
+     * @return true when coordination is degraded
      */
     default boolean degraded() {
       return false;

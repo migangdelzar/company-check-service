@@ -1,28 +1,27 @@
 package com.incode.verification.application.port.out;
 
-import com.incode.verification.domain.aggregate.Verification;
+import com.incode.verification.domain.verification.Verification;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
+import com.incode.verification.domain.query.NormalizedQuery;
+import org.jspecify.annotations.Nullable;
 
 /** PostgreSQL adapter port. Implementations must make save atomic with their transaction. */
 public interface VerificationRepository {
-  void insertInProgress(Verification verification);
-
-  void update(Verification verification);
+  boolean insertInProgress(Verification verification);
 
   Optional<Verification> findById(UUID id);
 
-  default Optional<Verification> findTerminalByQuery(
-      com.incode.verification.domain.valueobject.NormalizedQuery query) {
+  default Optional<Verification> findByQuery(NormalizedQuery query) {
     return Optional.empty();
   }
 
-  default UUID claim(UUID id) {
+  default @Nullable UUID claim(UUID id) {
     throw new UnsupportedOperationException("claiming is adapter-specific");
   }
 
-  default boolean updateTerminal(UUID id, UUID claimToken, Verification verification) {
+  default boolean complete(UUID id, UUID claimToken, Verification verification) {
     throw new UnsupportedOperationException("terminal CAS is adapter-specific");
   }
 

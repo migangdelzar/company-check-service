@@ -1,4 +1,4 @@
-package com.incode.verification.domain.valueobject;
+package com.incode.verification.domain.query;
 
 import java.util.Locale;
 import java.util.Objects;

@@ -1,4 +1,4 @@
-package com.incode.verification.domain.entity;
+package com.incode.verification.domain.company;
 
 import java.time.LocalDate;
 import java.util.Objects;
@@ -16,7 +16,9 @@ public record Company(
 
   private static String requiredText(String value, String field) {
     String required = Objects.requireNonNull(value, field);
-    if (required.isBlank()) throw new IllegalArgumentException(field + " must not be blank");
+    if (required.isBlank()) {
+      throw new IllegalArgumentException(field + " must not be blank");
+    }
     return required;
   }
 }

@@ -24,7 +24,7 @@ class ModulithArchitectureTest {
   void domainRemainsFrameworkFree() {
     assertFalse(
         java.util.Arrays.stream(
-                com.incode.verification.domain.aggregate.Verification.class.getAnnotations())
+                com.incode.verification.domain.verification.Verification.class.getAnnotations())
             .anyMatch(
                 annotation ->
                     annotation.annotationType().getName().startsWith("org.springframework.")));

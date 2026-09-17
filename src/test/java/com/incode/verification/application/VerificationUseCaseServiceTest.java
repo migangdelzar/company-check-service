@@ -4,21 +4,26 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import com.incode.verification.application.context.ExecutionContext;
-import com.incode.verification.application.port.in.StartVerificationUseCase.StartVerificationCommand;
+import com.incode.verification.configuration.VerificationProperties;
+import com.incode.verification.application.port.in.GetVerificationUseCase;
+import com.incode.verification.application.port.in.StartVerificationUseCase;
+import com.incode.verification.application.port.in.StartVerificationCommand;
 import com.incode.verification.application.port.out.CoordinationPort;
 import com.incode.verification.application.port.out.ProviderLookupPort;
 import com.incode.verification.application.port.out.VerificationRepository;
-import com.incode.verification.application.port.out.VerificationView;
+import com.incode.verification.application.result.VerificationResult;
 import com.incode.verification.application.service.CoordinationUnavailableException;
 import com.incode.verification.application.service.ProviderSubmissionException;
-import com.incode.verification.application.service.VerificationApplicationService;
-import com.incode.verification.domain.aggregate.Verification;
-import com.incode.verification.domain.type.ProviderFailure;
-import com.incode.verification.domain.type.ProviderLookupResult;
-import com.incode.verification.domain.type.ProviderType;
-import com.incode.verification.domain.type.VerificationStatus;
-import com.incode.verification.domain.valueobject.LookupKey;
+import com.incode.verification.application.service.VerificationStoreService;
+import com.incode.verification.application.service.GetVerificationService;
+import com.incode.verification.application.service.ProviderResolutionService;
+import com.incode.verification.application.service.VerificationRecoveryService;
+import com.incode.verification.application.service.StartVerificationService;
+import com.incode.verification.domain.verification.Verification;
+import com.incode.verification.domain.provider.ProviderFailure;
+import com.incode.verification.domain.provider.ProviderResult;
+import com.incode.verification.domain.provider.ProviderType;
+import com.incode.verification.domain.verification.VerificationStatus;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -31,8 +36,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.retry.RetryTemplate;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.SimpleTransactionStatus;
+import org.springframework.transaction.support.TransactionTemplate;
 
-class VerificationApplicationServiceTest {
+class VerificationUseCaseServiceTest {
   private final Instant now = Instant.parse("2026-01-01T00:00:00Z");
 
   @Test
@@ -40,22 +51,20 @@ class VerificationApplicationServiceTest {
     var repository = new MemoryRepository();
     var provider =
         (ProviderLookupPort)
-            (q, c) ->
-                new ProviderLookupResult.Success(
+            q ->
+                new ProviderResult.Success(
                     List.of(
-                        new com.incode.verification.domain.entity.Company(
+                        new com.incode.verification.domain.company.Company(
                             "A", "A", LocalDate.parse("2020-01-01"), "x", true)));
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new NoopCoordination(),
             provider,
             provider,
             Clock.fixed(now, ZoneOffset.UTC),
             Duration.ofMinutes(1));
-    VerificationView view =
-        ScopedValue.where(ExecutionContext.CURRENT, new ExecutionContext(UUID.randomUUID()))
-            .call(() -> service.start(new StartVerificationCommand(UUID.randomUUID(), " acme ")));
+    VerificationResult view = service.start(new StartVerificationCommand(UUID.randomUUID(), " acme "));
     assertEquals(VerificationStatus.COMPLETED, view.status());
     assertThrows(
         UnsupportedOperationException.class, () -> view.otherResults().add(view.company()));
@@ -67,18 +76,18 @@ class VerificationApplicationServiceTest {
     var calls = new ArrayList<String>();
     var primary =
         (ProviderLookupPort)
-            (q, c) -> {
+            q -> {
               calls.add("primary");
-              return new ProviderLookupResult.Failure(new ProviderFailure.Unavailable());
+              return new ProviderResult.Failure(new ProviderFailure.Unavailable());
             };
     var fallback =
         (ProviderLookupPort)
-            (q, c) -> {
+            q -> {
               calls.add("fallback");
-              return new ProviderLookupResult.Failure(new ProviderFailure.Timeout());
+              return new ProviderResult.Failure(new ProviderFailure.Timeout());
             };
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new NoopCoordination(),
             primary,
@@ -87,10 +96,7 @@ class VerificationApplicationServiceTest {
             Duration.ofMinutes(1));
     assertThrows(
         ProviderSubmissionException.class,
-        () ->
-            ScopedValue.where(ExecutionContext.CURRENT, new ExecutionContext(UUID.randomUUID()))
-                .call(
-                    () -> service.start(new StartVerificationCommand(UUID.randomUUID(), "acme"))));
+        () -> service.start(new StartVerificationCommand(UUID.randomUUID(), "acme")));
     assertEquals(List.of("primary", "fallback"), calls);
   }
 
@@ -102,23 +108,22 @@ class VerificationApplicationServiceTest {
         Verification.start(
                 id,
                 " Acme ",
-                new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+                new com.incode.verification.domain.query.NormalizedQuery("ACME"),
                 now,
                 now.plusSeconds(60))
             .complete(
-                new ProviderLookupResult.Success(
+                new ProviderResult.Success(
                     List.of(
-                        new com.incode.verification.domain.entity.Company(
+                        new com.incode.verification.domain.company.Company(
                             "A", "A", LocalDate.parse("2020-01-01"), "x", true)),
-                    ProviderType.FREE),
-                now);
+                    ProviderType.FREE));
     repository.values.put(id, verification);
     var providerCalls = new ArrayList<String>();
     var provider =
         (ProviderLookupPort)
-            (q, c) -> {
+            q -> {
               providerCalls.add(q.value());
-              return new ProviderLookupResult.Success(List.of());
+              return new ProviderResult.Success(List.of());
             };
     var service = service(repository, provider, provider);
 
@@ -140,14 +145,14 @@ class VerificationApplicationServiceTest {
         Verification.start(
             id,
             "acme",
-            new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+            new com.incode.verification.domain.query.NormalizedQuery("ACME"),
             now,
             now.plusSeconds(60)));
     var service =
         service(
             repository,
-            (q, c) -> new ProviderLookupResult.Success(List.of()),
-            (q, c) -> new ProviderLookupResult.Success(List.of()));
+            q -> new ProviderResult.Success(List.of()),
+            q -> new ProviderResult.Success(List.of()));
     var error =
         assertThrows(
             com.incode.verification.application.service.VerificationConflictException.class,
@@ -159,26 +164,26 @@ class VerificationApplicationServiceTest {
   void completesFromSharedCacheWithoutCallingProviders() {
     var repository = new MemoryRepository();
     var cached =
-        new VerificationView(
+        new VerificationResult(
             UUID.randomUUID(),
             "ACME",
             "ACME",
             now,
             now.plusSeconds(60),
             VerificationStatus.COMPLETED,
-            new com.incode.verification.domain.entity.Company(
+                        new com.incode.verification.domain.company.Company(
                 "A", "A", LocalDate.parse("2020-01-01"), "x", true),
             List.of(),
             ProviderType.PREMIUM,
             null);
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new CachedCoordination(cached),
-            (q, c) -> {
+            q -> {
               throw new AssertionError("provider must not be called");
             },
-            (q, c) -> {
+            q -> {
               throw new AssertionError("provider must not be called");
             },
             Clock.fixed(now, ZoneOffset.UTC),
@@ -192,13 +197,13 @@ class VerificationApplicationServiceTest {
   void returnsInProgressWhenAnotherLeaseOwnerHasNoResultYet() {
     var repository = new MemoryRepository();
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new WaitingCoordination(),
-            (q, c) -> {
+            q -> {
               throw new AssertionError("provider must not be called");
             },
-            (q, c) -> {
+            q -> {
               throw new AssertionError("provider must not be called");
             },
             Clock.fixed(now, ZoneOffset.UTC),
@@ -212,7 +217,7 @@ class VerificationApplicationServiceTest {
   void refusesProviderLookupWhenCoordinationIsUnavailable() {
     var repository = new MemoryRepository();
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new UnavailableCoordination(),
             providerMustNotRun(),
@@ -234,14 +239,14 @@ class VerificationApplicationServiceTest {
         Verification.start(
             id,
             "acme",
-            new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+            new com.incode.verification.domain.query.NormalizedQuery("ACME"),
             now,
             now.plusSeconds(60)));
     var company =
-        new com.incode.verification.domain.entity.Company(
+                        new com.incode.verification.domain.company.Company(
             "A", "A", LocalDate.parse("2020-01-01"), "x", true);
     var cached =
-        new VerificationView(
+        new VerificationResult(
             id,
             "acme",
             "ACME",
@@ -253,17 +258,17 @@ class VerificationApplicationServiceTest {
             ProviderType.FREE,
             null);
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new CachedCoordination(cached),
-            (q, c) -> new ProviderLookupResult.Success(List.of(), ProviderType.FREE),
-            (q, c) -> new ProviderLookupResult.Success(List.of(), ProviderType.FREE),
+            q -> new ProviderResult.Success(List.of(), ProviderType.FREE),
+            q -> new ProviderResult.Success(List.of(), ProviderType.FREE),
             Clock.fixed(now, ZoneOffset.UTC),
             Duration.ofMinutes(1));
 
     assertEquals(VerificationStatus.COMPLETED, service.get(id).status());
     assertInstanceOf(
-        com.incode.verification.domain.type.VerificationState.Completed.class,
+        com.incode.verification.domain.verification.VerificationState.Completed.class,
         repository.values.get(id).state());
   }
 
@@ -272,7 +277,7 @@ class VerificationApplicationServiceTest {
     var repository = new MemoryRepository();
     var failure = new ProviderFailure.Timeout();
     var cached =
-        new VerificationView(
+        new VerificationResult(
             UUID.randomUUID(),
             "ACME",
             "ACME",
@@ -284,13 +289,13 @@ class VerificationApplicationServiceTest {
             null,
             failure);
     var service =
-        new VerificationApplicationService(
+        services(
             repository,
             new CachedCoordination(cached),
-            (q, c) -> {
+            q -> {
               throw new AssertionError("provider must not be called");
             },
-            (q, c) -> {
+            q -> {
               throw new AssertionError("provider must not be called");
             },
             Clock.fixed(now, ZoneOffset.UTC),
@@ -324,10 +329,10 @@ class VerificationApplicationServiceTest {
         Verification.start(
                 UUID.randomUUID(),
                 "ACME",
-                new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+                new com.incode.verification.domain.query.NormalizedQuery("ACME"),
                 now,
                 now.plusSeconds(60))
-            .fail(new ProviderFailure.Timeout(), now);
+            .fail(new ProviderFailure.Timeout());
     repository.terminals.put("ACME", failed);
     var service = service(repository, providerMustNotRun(), providerMustNotRun());
 
@@ -346,7 +351,7 @@ class VerificationApplicationServiceTest {
         Verification.start(
             id,
             "ACME",
-            new com.incode.verification.domain.valueobject.NormalizedQuery("ACME"),
+                new com.incode.verification.domain.query.NormalizedQuery("ACME"),
             now,
             now.plusSeconds(60)));
     var shared = completed(UUID.randomUUID(), "ACME");
@@ -362,19 +367,19 @@ class VerificationApplicationServiceTest {
     return Verification.start(
             id,
             query,
-            new com.incode.verification.domain.valueobject.NormalizedQuery(query),
+            new com.incode.verification.domain.query.NormalizedQuery(query),
             now,
             now.plusSeconds(60))
-        .complete(new ProviderLookupResult.Success(List.of(company()), ProviderType.FREE), now);
+        .complete(new ProviderResult.Success(List.of(company()), ProviderType.FREE));
   }
 
-  private com.incode.verification.domain.entity.Company company() {
-    return new com.incode.verification.domain.entity.Company(
+  private com.incode.verification.domain.company.Company company() {
+    return new com.incode.verification.domain.company.Company(
         "A", "A", LocalDate.parse("2020-01-01"), "x", true);
   }
 
   private ProviderLookupPort providerMustNotRun() {
-    return (q, c) -> {
+    return q -> {
       throw new AssertionError("provider must not be called");
     };
   }
@@ -385,8 +390,8 @@ class VerificationApplicationServiceTest {
     var service =
         service(
             repository,
-            (q, c) -> new ProviderLookupResult.Success(List.of()),
-            (q, c) -> new ProviderLookupResult.Success(List.of()));
+            q -> new ProviderResult.Success(List.of()),
+            q -> new ProviderResult.Success(List.of()));
     assertInstanceOf(
         com.incode.verification.application.service.VerificationNotFoundException.class,
         assertThrows(
@@ -394,15 +399,71 @@ class VerificationApplicationServiceTest {
             () -> service.get(UUID.randomUUID())));
   }
 
-  private VerificationApplicationService service(
+  private Services service(
       MemoryRepository repository, ProviderLookupPort primary, ProviderLookupPort fallback) {
-    return new VerificationApplicationService(
+    return services(repository, new NoopCoordination(), primary, fallback);
+  }
+
+  private Services services(
+      MemoryRepository repository,
+      CoordinationPort coordination,
+      ProviderLookupPort primary,
+      ProviderLookupPort fallback) {
+    return services(
         repository,
-        new NoopCoordination(),
+        coordination,
         primary,
         fallback,
         Clock.fixed(now, ZoneOffset.UTC),
         Duration.ofMinutes(1));
+  }
+
+  private Services services(
+      MemoryRepository repository,
+      CoordinationPort coordination,
+      ProviderLookupPort primary,
+      ProviderLookupPort fallback,
+      Clock clock,
+      Duration lifetime) {
+    var terminal =
+        new VerificationStoreService(
+            repository, coordination, new RetryTemplate(), new TransactionTemplate(noOpTransactions()));
+    var recovery = new VerificationRecoveryService(repository, coordination, terminal);
+    return new Services(
+        new StartVerificationService(
+            repository,
+            coordination,
+            new ProviderResolutionService(primary, fallback),
+            terminal,
+            recovery,
+            clock,
+            new VerificationProperties(lifetime)),
+        new GetVerificationService(repository, recovery));
+  }
+
+  private record Services(StartVerificationUseCase starter, GetVerificationUseCase retriever) {
+    VerificationResult start(StartVerificationCommand command) {
+      return starter.start(command);
+    }
+
+    VerificationResult get(UUID verificationId) {
+      return retriever.get(verificationId);
+    }
+  }
+
+  private static PlatformTransactionManager noOpTransactions() {
+    return new PlatformTransactionManager() {
+      @Override
+      public TransactionStatus getTransaction(TransactionDefinition definition) {
+        return new SimpleTransactionStatus();
+      }
+
+      @Override
+      public void commit(TransactionStatus status) {}
+
+      @Override
+      public void rollback(TransactionStatus status) {}
+    };
   }
 
   private static final class MemoryRepository implements VerificationRepository {
@@ -410,13 +471,8 @@ class VerificationApplicationServiceTest {
     private final Map<String, Verification> terminals = new HashMap<>();
 
     @Override
-    public void insertInProgress(Verification v) {
-      values.put(v.id(), v);
-    }
-
-    @Override
-    public void update(Verification v) {
-      values.put(v.id(), v);
+    public boolean insertInProgress(Verification v) {
+      return values.putIfAbsent(v.id(), v) == null;
     }
 
     @Override
@@ -425,8 +481,8 @@ class VerificationApplicationServiceTest {
     }
 
     @Override
-    public Optional<Verification> findTerminalByQuery(
-        com.incode.verification.domain.valueobject.NormalizedQuery query) {
+    public Optional<Verification> findByQuery(
+        com.incode.verification.domain.query.NormalizedQuery query) {
       return Optional.ofNullable(terminals.get(query.value()));
     }
 
@@ -436,7 +492,7 @@ class VerificationApplicationServiceTest {
     }
 
     @Override
-    public boolean updateTerminal(UUID id, UUID token, Verification v) {
+    public boolean complete(UUID id, UUID token, Verification v) {
       values.put(id, v);
       return true;
     }
@@ -444,7 +500,7 @@ class VerificationApplicationServiceTest {
 
   private static class NoopCoordination implements CoordinationPort {
     @Override
-    public Lease acquire(LookupKey key) {
+    public Lease acquire(com.incode.verification.domain.query.NormalizedQuery query) {
       return new Lease() {
         @Override
         public boolean acquired() {
@@ -457,30 +513,38 @@ class VerificationApplicationServiceTest {
     }
 
     @Override
-    public Optional<VerificationView> cached(LookupKey key) {
+    public Optional<VerificationResult> get(com.incode.verification.domain.query.NormalizedQuery query) {
       return Optional.empty();
     }
 
     @Override
-    public void cache(LookupKey key, VerificationView view) {}
+    public VerificationResult put(
+        com.incode.verification.domain.query.NormalizedQuery query, VerificationResult result) {
+      return result;
+    }
   }
 
   private static final class CachedCoordination extends NoopCoordination {
-    private final VerificationView cached;
+    private final VerificationResult cached;
 
-    CachedCoordination(VerificationView cached) {
+    CachedCoordination(VerificationResult cached) {
       this.cached = cached;
     }
 
     @Override
-    public Optional<VerificationView> cached(LookupKey key) {
+    public Lease acquire(com.incode.verification.domain.query.NormalizedQuery query) {
+      return new WaitingCoordination().acquire(query);
+    }
+
+    @Override
+    public Optional<VerificationResult> get(com.incode.verification.domain.query.NormalizedQuery query) {
       return Optional.of(cached);
     }
   }
 
   private static final class WaitingCoordination extends NoopCoordination {
     @Override
-    public Lease acquire(LookupKey key) {
+    public Lease acquire(com.incode.verification.domain.query.NormalizedQuery query) {
       return new Lease() {
         @Override
         public boolean acquired() {
@@ -495,7 +559,7 @@ class VerificationApplicationServiceTest {
 
   private static final class UnavailableCoordination extends NoopCoordination {
     @Override
-    public Lease acquire(LookupKey key) {
+    public Lease acquire(com.incode.verification.domain.query.NormalizedQuery query) {
       return new Lease() {
         @Override
         public boolean acquired() {

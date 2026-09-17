@@ -1,13 +1,11 @@
-package com.incode.verification.domain.policy;
+package com.incode.verification.domain.provider;
 
-import com.incode.verification.domain.type.ProviderFailure;
-import com.incode.verification.domain.type.ProviderLookupResult;
 
 public final class FallbackPolicy {
   private FallbackPolicy() {}
 
-  public static boolean shouldFallback(ProviderLookupResult result) {
-    return result instanceof ProviderLookupResult.Failure failure
+  public static boolean requiresFallback(ProviderResult result) {
+    return result instanceof ProviderResult.Failure failure
         && switch (failure.failure()) {
           case ProviderFailure.Unavailable ignored -> true;
           case ProviderFailure.Malformed ignored -> true;
