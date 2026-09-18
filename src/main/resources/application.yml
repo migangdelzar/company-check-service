@@ -5,9 +5,18 @@ spring:
     name: company-check-service
   main:
     keep-alive: true
-  threads:
-    virtual:
+  r2dbc:
+    url: ${SPRING_R2DBC_URL:r2dbc:postgresql://localhost:5432/company_check}
+    username: ${SPRING_R2DBC_USERNAME:company_check}
+    password: ${SPRING_R2DBC_PASSWORD:change-me-locally}
+    pool:
       enabled: true
+      initial-size: 4
+      min-idle: 4
+      max-size: 16
+      max-acquire-time: 250ms
+      max-create-connection-time: 150ms
+      max-life-time: 1500s
   datasource:
     hikari:
       maximum-pool-size: 16
