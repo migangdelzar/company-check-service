@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
 @Configuration(proxyBeanMethods = false)
 @EnableConfigurationProperties(InboundRateLimitProperties.class)
@@ -24,7 +24,7 @@ public class InboundRateLimitConfiguration {
   @Bean
   @Profile("distributed")
   InboundRateLimiter distributedInboundRateLimiter(
-      StringRedisTemplate redis, InboundRateLimitProperties properties) {
+      ReactiveStringRedisTemplate redis, InboundRateLimitProperties properties) {
     return new RedisInboundRateLimiter(redis, properties);
   }
 }

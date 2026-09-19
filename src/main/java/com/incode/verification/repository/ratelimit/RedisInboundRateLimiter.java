@@ -6,8 +6,9 @@ import java.time.Duration;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import reactor.core.publisher.Mono;
 
 public final class RedisInboundRateLimiter implements InboundRateLimiter {
   private static final Logger log = LoggerFactory.getLogger(RedisInboundRateLimiter.class);
@@ -19,32 +20,36 @@ public final class RedisInboundRateLimiter implements InboundRateLimiter {
               + "if current <= tonumber(ARGV[2]) then return 1 else return 0 end",
           Long.class);
 
-  private final StringRedisTemplate redis;
+  private final ReactiveStringRedisTemplate redis;
   private final InboundRateLimitProperties properties;
 
-  public RedisInboundRateLimiter(StringRedisTemplate redis, InboundRateLimitProperties properties) {
+  public RedisInboundRateLimiter(
+      ReactiveStringRedisTemplate redis, InboundRateLimitProperties properties) {
     this.redis = redis;
     this.properties = properties;
   }
 
   @Override
-  public Decision tryAcquire() {
+  public Mono<Decision> tryAcquire() {
     var retryAfter = properties.refreshPeriod();
     var key = properties.keyPrefix() + KEY_SUFFIX;
-    try {
-      var allowed =
-          redis.execute(
-              ALLOW_SCRIPT,
-              List.of(key),
-              String.valueOf(retryAfter.toMillis()),
-              String.valueOf(properties.limitForPeriod()));
-      return Long.valueOf(1L).equals(allowed)
-          ? new Decision(Decision.Status.ALLOWED, Duration.ZERO)
-          : new Decision(Decision.Status.REJECTED, retryAfter);
-    } catch (RuntimeException exception) {
-      log.warn("Redis inbound rate limiter unavailable");
-      log.debug("Redis inbound rate limiter failure", exception);
-      return new Decision(Decision.Status.UNAVAILABLE, retryAfter);
-    }
+    return redis
+        .execute(
+            ALLOW_SCRIPT,
+            List.of(key),
+            String.valueOf(retryAfter.toMillis()),
+            String.valueOf(properties.limitForPeriod()))
+        .next()
+        .map(
+            allowed ->
+                Long.valueOf(1L).equals(allowed)
+                    ? new Decision(Decision.Status.ALLOWED, Duration.ZERO)
+                    : new Decision(Decision.Status.REJECTED, retryAfter))
+        .doOnError(
+            exception -> {
+              log.warn("Redis inbound rate limiter unavailable");
+              log.debug("Redis inbound rate limiter failure", exception);
+            })
+        .onErrorReturn(new Decision(Decision.Status.UNAVAILABLE, retryAfter));
   }
 }

@@ -1,18 +1,18 @@
 package com.incode.verification.filter;
 
 import com.incode.verification.repository.InboundRateLimiter;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 import java.time.Duration;
+import java.util.Objects;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.server.ServerWebExchange;
+import org.springframework.web.server.WebFilter;
+import org.springframework.web.server.WebFilterChain;
+import reactor.core.publisher.Mono;
 
 @Component
-public final class InboundRateLimitFilter extends OncePerRequestFilter {
+public final class InboundRateLimitFilter implements WebFilter {
   private static final String BACKEND_SERVICE_PATH = "/backend-service";
   private static final String RETRY_AFTER = "Retry-After";
 
@@ -23,28 +23,31 @@ public final class InboundRateLimitFilter extends OncePerRequestFilter {
   }
 
   @Override
-  protected boolean shouldNotFilter(HttpServletRequest request) {
-    return !("GET".equals(request.getMethod())
-        && BACKEND_SERVICE_PATH.equals(request.getRequestURI()));
-  }
-
-  @Override
-  protected void doFilterInternal(
-      HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-      throws ServletException, IOException {
-    var decision = limiter.tryAcquire();
-    if (decision.allowed()) {
-      filterChain.doFilter(request, response);
-      return;
+  public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
+    var request = exchange.getRequest();
+    if (!Objects.equals(request.getMethod(), HttpMethod.GET)
+        || !BACKEND_SERVICE_PATH.equals(request.getPath().value())) {
+      return chain.filter(exchange);
     }
-
-    response.setStatus(
-        decision.status() == InboundRateLimiter.Decision.Status.REJECTED ? 429 : 503);
-    response.setContentType(MediaType.APPLICATION_PROBLEM_JSON_VALUE);
-    var retryAfter = retryAfterSeconds(decision.retryAfter());
-    if (retryAfter > 0) {
-      response.setHeader(RETRY_AFTER, Long.toString(retryAfter));
-    }
+    return limiter
+        .tryAcquire()
+        .flatMap(
+            decision -> {
+              if (decision.allowed()) {
+                return chain.filter(exchange);
+              }
+              var response = exchange.getResponse();
+              response.setStatusCode(
+                  decision.status() == InboundRateLimiter.Decision.Status.REJECTED
+                      ? org.springframework.http.HttpStatus.TOO_MANY_REQUESTS
+                      : org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE);
+              response.getHeaders().setContentType(MediaType.APPLICATION_PROBLEM_JSON);
+              var retryAfter = retryAfterSeconds(decision.retryAfter());
+              if (retryAfter > 0) {
+                response.getHeaders().set(RETRY_AFTER, Long.toString(retryAfter));
+              }
+              return response.setComplete();
+            });
   }
 
   private static long retryAfterSeconds(Duration duration) {

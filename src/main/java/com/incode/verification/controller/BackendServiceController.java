@@ -12,6 +12,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @RestController
 @Validated
@@ -23,12 +24,11 @@ public class BackendServiceController {
   }
 
   @GetMapping("/backend-service")
-  public ResponseEntity<VerificationResponse> start(
+  public Mono<ResponseEntity<VerificationResponse>> start(
       @Valid @ModelAttribute BackendServiceRequest request) {
-    var view =
-        verification.start(new StartVerificationCommand(request.verificationId(), request.query()));
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(VerificationMapper.map(view));
+    return verification
+        .start(new StartVerificationCommand(request.verificationId(), request.query()))
+        .map(VerificationMapper::map)
+        .map(body -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body));
   }
 }

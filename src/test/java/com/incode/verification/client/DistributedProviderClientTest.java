@@ -11,20 +11,23 @@ import com.incode.verification.service.model.ProviderResult;
 import com.incode.verification.service.model.ProviderType;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
-class DistributedProviderTest {
+class DistributedProviderClientTest {
   @Test
   void rejectsProviderCallWhenTheSharedLimiterDeniesIt() {
     var invoked = new AtomicBoolean();
     ProviderClient delegate =
         query -> {
           invoked.set(true);
-          return new ProviderResult.Success(java.util.List.of());
+          return Mono.just(new ProviderResult.Success(java.util.List.of()));
         };
-    ProviderRateLimiter limiter = provider -> false;
+    ProviderRateLimiter limiter = provider -> Mono.just(false);
 
     var result =
-        new DistributedFreeProviderClient(delegate, limiter).lookup(new NormalizedQuery("ACME"));
+        new DistributedFreeProviderClient(delegate, limiter)
+            .lookup(new NormalizedQuery("ACME"))
+            .block();
 
     assertInstanceOf(ProviderResult.Failure.class, result);
     assertInstanceOf(
@@ -38,12 +41,14 @@ class DistributedProviderTest {
     ProviderClient delegate =
         query -> {
           invoked.set(true);
-          return new ProviderResult.Success(java.util.List.of());
+          return Mono.just(new ProviderResult.Success(java.util.List.of()));
         };
-    ProviderRateLimiter limiter = provider -> provider == ProviderType.FREE;
+    ProviderRateLimiter limiter = provider -> Mono.just(provider == ProviderType.FREE);
 
     var result =
-        new DistributedFreeProviderClient(delegate, limiter).lookup(new NormalizedQuery("ACME"));
+        new DistributedFreeProviderClient(delegate, limiter)
+            .lookup(new NormalizedQuery("ACME"))
+            .block();
 
     assertInstanceOf(ProviderResult.Success.class, result);
     assertTrue(invoked.get());

@@ -3,9 +3,6 @@ package com.incode.verification.controller;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.incode.verification.exception.handler.GlobalExceptionHandler;
 import com.incode.verification.service.VerificationService;
@@ -13,24 +10,30 @@ import com.incode.verification.service.model.VerificationResult;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
 class VerificationControllerTest {
   private final VerificationService retriever = mock(VerificationService.class);
-  private final MockMvc mvc =
-      MockMvcBuilders.standaloneSetup(new VerificationController(retriever))
-          .setControllerAdvice(new GlobalExceptionHandler())
+  private final WebTestClient client =
+      WebTestClient.bindToController(new VerificationController(retriever))
+          .controllerAdvice(new GlobalExceptionHandler())
           .build();
 
   @Test
-  void retrievalDelegatesByVerificationId() throws Exception {
+  void retrievalDelegatesByVerificationId() {
     var id = UUID.randomUUID();
-    when(retriever.get(id)).thenReturn(view(id));
+    when(retriever.get(id)).thenReturn(Mono.just(view(id)));
 
-    mvc.perform(get("/verifications/{id}", id))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.verificationId").value(id.toString()));
+    client
+        .get()
+        .uri("/verifications/{id}", id)
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectBody()
+        .jsonPath("$.verificationId")
+        .isEqualTo(id.toString());
     verify(retriever).get(id);
   }
 

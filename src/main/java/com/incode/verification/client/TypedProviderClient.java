@@ -8,24 +8,24 @@ import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.ProviderFailure;
 import com.incode.verification.service.model.ProviderResult;
 import com.incode.verification.service.model.ProviderType;
-import java.net.SocketTimeoutException;
 import java.util.List;
 import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
-import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 /** Generic HTTP provider client that keeps transport and response mapping in one place. */
 final class TypedProviderClient<T> implements ProviderClient {
-  private final RestClient client;
+  private final WebClient client;
   private final ProviderEndpointProperties endpoint;
   private final ProviderType provider;
   private final Class<T[]> responseType;
   private final Function<T @Nullable [], List<Company>> mapper;
 
   TypedProviderClient(
-      RestClient client,
+      WebClient client,
       ProviderEndpointProperties endpoint,
       ProviderType provider,
       Class<T[]> responseType,
@@ -38,49 +38,54 @@ final class TypedProviderClient<T> implements ProviderClient {
   }
 
   @Override
-  public ProviderResult lookup(NormalizedQuery query) {
-    try {
-      return new ProviderResult.Success(mapper.apply(get(query)), provider);
-    } catch (Exception failure) {
-      return handle(failure);
-    }
+  public Mono<ProviderResult> lookup(NormalizedQuery query) {
+    return get(query)
+        .<ProviderResult>map(
+            response -> new ProviderResult.Success(mapper.apply(response), provider))
+        .onErrorResume(ClientErrorException.class, failure -> Mono.just(clientError(failure)))
+        .onErrorMap(
+            IllegalArgumentException.class, failure -> new ProviderContractException(failure))
+        .onErrorMap(
+            failure ->
+                !(failure instanceof ClientErrorException)
+                    && !(failure instanceof ProviderContractException)
+                    && !(failure instanceof ProviderTransientException),
+            TypedProviderClient::transientFailure);
   }
 
-  private T @Nullable [] get(NormalizedQuery query) {
+  private Mono<T @Nullable []> get(NormalizedQuery query) {
     return client
         .get()
         .uri(endpoint.path(), query.value())
         .header("X-Api-Key", endpoint.apiKey())
         .retrieve()
-        .body(responseType);
+        .bodyToMono(responseType)
+        .onErrorMap(
+            WebClientResponseException.class,
+            failure -> responseFailure((WebClientResponseException) failure))
+        .onErrorMap(
+            WebClientRequestException.class,
+            failure -> transientFailure((WebClientRequestException) failure));
   }
 
-  private static ProviderResult handle(Exception failure) {
-    if (failure instanceof RestClientResponseException response) {
-      return response(response);
-    }
-    if (failure instanceof IllegalArgumentException) {
-      throw new ProviderContractException(failure);
-    }
-    if (failure instanceof ResourceAccessException access) {
-      throw transientFailure(access);
-    }
-    throw transientFailure(failure);
-  }
-
-  private static ProviderResult response(RestClientResponseException failure) {
+  private static RuntimeException responseFailure(WebClientResponseException failure) {
     if (failure.getStatusCode().is4xxClientError()) {
-      return new ProviderResult.Failure(
-          new ProviderFailure.ClientError(failure.getStatusCode().value()));
+      return new ClientErrorException(failure.getStatusCode().value());
     }
-    throw transientFailure(failure);
+    return transientFailure(failure);
   }
 
-  private static ProviderTransientException transientFailure(Exception failure) {
-    if (hasCause(failure, SocketTimeoutException.class)) {
+  private static ProviderTransientException transientFailure(Throwable failure) {
+    if (hasCause(failure, java.util.concurrent.TimeoutException.class)
+        || hasCause(failure, java.io.IOException.class)) {
       return new ProviderTransientException(new ProviderFailure.Timeout(), failure);
     }
     return new ProviderTransientException(new ProviderFailure.Unavailable(), failure);
+  }
+
+  private static ProviderResult clientError(Throwable failure) {
+    return new ProviderResult.Failure(
+        new ProviderFailure.ClientError(((ClientErrorException) failure).status));
   }
 
   private static boolean hasCause(Throwable error, Class<? extends Throwable> type) {
@@ -90,5 +95,13 @@ final class TypedProviderClient<T> implements ProviderClient {
       }
     }
     return false;
+  }
+
+  private static final class ClientErrorException extends RuntimeException {
+    private final int status;
+
+    private ClientErrorException(int status) {
+      this.status = status;
+    }
   }
 }

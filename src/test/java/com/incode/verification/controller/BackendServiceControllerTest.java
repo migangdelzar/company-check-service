@@ -3,11 +3,6 @@ package com.incode.verification.controller;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.incode.verification.exception.handler.GlobalExceptionHandler;
 import com.incode.verification.service.VerificationService;
@@ -15,38 +10,59 @@ import com.incode.verification.service.model.VerificationResult;
 import java.time.Instant;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import reactor.core.publisher.Mono;
 
 class BackendServiceControllerTest {
   private final VerificationService starter = mock(VerificationService.class);
-  private final MockMvc mvc =
-      MockMvcBuilders.standaloneSetup(new BackendServiceController(starter))
-          .setControllerAdvice(new GlobalExceptionHandler())
+  private final WebTestClient client =
+      WebTestClient.bindToController(new BackendServiceController(starter))
+          .controllerAdvice(new GlobalExceptionHandler())
           .build();
 
   @Test
-  void lookupReturnsPdfCompatibleRepresentationAndNoStore() throws Exception {
+  void lookupReturnsPdfCompatibleRepresentationAndNoStore() {
     var id = UUID.randomUUID();
-    when(starter.start(any())).thenReturn(view(id));
+    when(starter.start(any())).thenReturn(Mono.just(view(id)));
 
-    mvc.perform(
-            get("/backend-service").param("verificationId", id.toString()).param("query", "Acme"))
-        .andExpect(status().isOk())
-        .andExpect(header().string("Cache-Control", "no-store"))
-        .andExpect(jsonPath("$.verificationId").value(id.toString()))
-        .andExpect(jsonPath("$.query").value("Acme"));
+    client
+        .get()
+        .uri(
+            uri ->
+                uri.path("/backend-service")
+                    .queryParam("verificationId", id)
+                    .queryParam("query", "Acme")
+                    .build())
+        .exchange()
+        .expectStatus()
+        .isOk()
+        .expectHeader()
+        .valueEquals("Cache-Control", "no-store")
+        .expectBody()
+        .jsonPath("$.verificationId")
+        .isEqualTo(id.toString())
+        .jsonPath("$.query")
+        .isEqualTo("Acme");
   }
 
   @Test
-  void blankQueryUsesProblemDetails() throws Exception {
-    mvc.perform(
-            get("/backend-service")
-                .param("verificationId", UUID.randomUUID().toString())
-                .param("query", " "))
-        .andExpect(status().isBadRequest())
-        .andExpect(content().contentTypeCompatibleWith("application/problem+json"))
-        .andExpect(jsonPath("$.title").value("Invalid request"));
+  void blankQueryUsesProblemDetails() {
+    client
+        .get()
+        .uri(
+            uri ->
+                uri.path("/backend-service")
+                    .queryParam("verificationId", UUID.randomUUID())
+                    .queryParam("query", " ")
+                    .build())
+        .exchange()
+        .expectStatus()
+        .isBadRequest()
+        .expectHeader()
+        .contentTypeCompatibleWith("application/problem+json")
+        .expectBody()
+        .jsonPath("$.title")
+        .isEqualTo("Invalid request");
   }
 
   private VerificationResult view(UUID id) {

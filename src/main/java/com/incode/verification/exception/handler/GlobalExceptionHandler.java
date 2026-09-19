@@ -14,6 +14,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.support.WebExchangeBindException;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
@@ -25,6 +26,7 @@ public class GlobalExceptionHandler {
 
   @ExceptionHandler({
     MethodArgumentNotValidException.class,
+    WebExchangeBindException.class,
     MethodArgumentTypeMismatchException.class,
     HandlerMethodValidationException.class,
     ConstraintViolationException.class,
@@ -67,6 +69,11 @@ public class GlobalExceptionHandler {
 
   private static String detail(Exception exception) {
     if (exception instanceof MethodArgumentNotValidException invalid) {
+      return invalid.getBindingResult().getFieldErrors().stream()
+          .map(error -> error.getField() + ": " + error.getDefaultMessage())
+          .collect(Collectors.joining(", "));
+    }
+    if (exception instanceof WebExchangeBindException invalid) {
       return invalid.getBindingResult().getFieldErrors().stream()
           .map(error -> error.getField() + ": " + error.getDefaultMessage())
           .collect(Collectors.joining(", "));

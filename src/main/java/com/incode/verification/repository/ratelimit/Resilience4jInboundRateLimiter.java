@@ -3,6 +3,7 @@ package com.incode.verification.repository.ratelimit;
 import com.incode.verification.repository.InboundRateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import java.time.Duration;
+import reactor.core.publisher.Mono;
 
 public final class Resilience4jInboundRateLimiter implements InboundRateLimiter {
   private final RateLimiter limiter;
@@ -14,9 +15,11 @@ public final class Resilience4jInboundRateLimiter implements InboundRateLimiter 
   }
 
   @Override
-  public Decision tryAcquire() {
-    return limiter.acquirePermission()
-        ? new Decision(Decision.Status.ALLOWED, Duration.ZERO)
-        : new Decision(Decision.Status.REJECTED, retryAfter);
+  public Mono<Decision> tryAcquire() {
+    return Mono.fromSupplier(
+        () ->
+            limiter.acquirePermission()
+                ? new Decision(Decision.Status.ALLOWED, Duration.ZERO)
+                : new Decision(Decision.Status.REJECTED, retryAfter));
   }
 }

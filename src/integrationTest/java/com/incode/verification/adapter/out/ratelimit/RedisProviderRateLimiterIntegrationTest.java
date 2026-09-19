@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -31,8 +31,7 @@ class RedisProviderRateLimiterIntegrationTest {
         new LettuceConnectionFactory(
             new RedisStandaloneConfiguration(REDIS.getHost(), REDIS.getMappedPort(6379)));
     factory.afterPropertiesSet();
-    var template = new StringRedisTemplate(factory);
-    template.afterPropertiesSet();
+    var template = new ReactiveStringRedisTemplate(factory);
     limiter =
         new RedisProviderRateLimiter(
             template,
@@ -49,9 +48,9 @@ class RedisProviderRateLimiterIntegrationTest {
 
   @Test
   void sharesTheProviderBudgetInRedis() {
-    assertTrue(limiter.tryAcquire(ProviderType.FREE));
-    assertTrue(limiter.tryAcquire(ProviderType.FREE));
-    assertFalse(limiter.tryAcquire(ProviderType.FREE));
-    assertTrue(limiter.tryAcquire(ProviderType.PREMIUM));
+    assertTrue(limiter.tryAcquire(ProviderType.FREE).block());
+    assertTrue(limiter.tryAcquire(ProviderType.FREE).block());
+    assertFalse(limiter.tryAcquire(ProviderType.FREE).block());
+    assertTrue(limiter.tryAcquire(ProviderType.PREMIUM).block());
   }
 }

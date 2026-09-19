@@ -4,6 +4,7 @@ import com.incode.verification.repository.VerificationRepository;
 import io.micrometer.observation.annotation.Observed;
 import java.time.Instant;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 public class ExpirationService {
@@ -14,7 +15,7 @@ public class ExpirationService {
   }
 
   @Observed(name = "verification.expire")
-  public int expire(Instant now, int batchSize) {
+  public Mono<Integer> expire(Instant now, int batchSize) {
     if (batchSize < 1) {
       throw new IllegalArgumentException("batchSize must be positive");
     }

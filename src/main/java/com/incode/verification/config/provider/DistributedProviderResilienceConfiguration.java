@@ -8,21 +8,21 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.web.client.RestClient;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("distributed")
 public class DistributedProviderResilienceConfiguration {
   @Bean
   ProviderRateLimiter providerRateLimiter(
-      StringRedisTemplate redis, ProviderRateLimitProperties properties) {
+      ReactiveStringRedisTemplate redis, ProviderRateLimitProperties properties) {
     return new RedisProviderRateLimiter(redis, properties);
   }
 
   @Bean
   DistributedFreeProviderClient freeProvider(
-      @Qualifier("freeProviderClient") RestClient client,
+      @Qualifier("freeProviderClient") WebClient client,
       ProviderProperties properties,
       ProviderRateLimiter rateLimiter) {
     return new DistributedFreeProviderClient(client, properties.free(), rateLimiter);
@@ -30,7 +30,7 @@ public class DistributedProviderResilienceConfiguration {
 
   @Bean
   DistributedPremiumProviderClient premiumProvider(
-      @Qualifier("premiumProviderClient") RestClient client,
+      @Qualifier("premiumProviderClient") WebClient client,
       ProviderProperties properties,
       ProviderRateLimiter rateLimiter) {
     return new DistributedPremiumProviderClient(client, properties.premium(), rateLimiter);

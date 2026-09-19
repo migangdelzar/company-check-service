@@ -1,7 +1,8 @@
 package com.incode.verification.repository.ratelimit;
 
 import com.incode.verification.service.model.ProviderType;
+import reactor.core.publisher.Mono;
 
 public interface ProviderRateLimiter {
-  boolean tryAcquire(ProviderType provider);
+  Mono<Boolean> tryAcquire(ProviderType provider);
 }

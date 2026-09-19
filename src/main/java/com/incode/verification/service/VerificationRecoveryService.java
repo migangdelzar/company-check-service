@@ -5,8 +5,8 @@ import com.incode.verification.repository.CoordinationRepository;
 import com.incode.verification.repository.VerificationRepository;
 import com.incode.verification.service.model.Verification;
 import com.incode.verification.service.model.VerificationResult;
-import java.util.Optional;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 public class VerificationRecoveryService {
@@ -23,26 +23,26 @@ public class VerificationRecoveryService {
     this.store = store;
   }
 
-  public Optional<VerificationResult> recover(Verification verification) {
-    return cached(verification).or(() -> shared(verification));
+  public Mono<VerificationResult> recover(Verification verification) {
+    return cached(verification).switchIfEmpty(shared(verification));
   }
 
-  public Optional<VerificationResult> cached(Verification verification) {
+  public Mono<VerificationResult> cached(Verification verification) {
     var query = verification.query();
     return coordination
         .get(query)
         .filter(result -> result.status().isTerminal())
-        .map(
+        .flatMap(
             result ->
                 store.store(
                     VerificationReconciliationMapper.fromCached(verification, result), query));
   }
 
-  public Optional<VerificationResult> shared(Verification verification) {
+  public Mono<VerificationResult> shared(Verification verification) {
     var query = verification.query();
     return repository
         .findByQuery(query)
-        .map(
+        .flatMap(
             shared ->
                 store.store(
                     VerificationReconciliationMapper.fromShared(verification, shared), query));

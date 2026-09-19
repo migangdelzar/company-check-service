@@ -35,6 +35,17 @@ class CompanyCheckApplicationIntegrationTest {
     registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("spring.datasource.username", POSTGRES::getUsername);
     registry.add("spring.datasource.password", POSTGRES::getPassword);
+    registry.add(
+        "spring.r2dbc.url",
+        () ->
+            "r2dbc:postgresql://"
+                + POSTGRES.getHost()
+                + ":"
+                + POSTGRES.getMappedPort(5432)
+                + "/"
+                + POSTGRES.getDatabaseName());
+    registry.add("spring.r2dbc.username", POSTGRES::getUsername);
+    registry.add("spring.r2dbc.password", POSTGRES::getPassword);
     registry.add("spring.data.redis.host", REDIS::getHost);
     registry.add("spring.data.redis.port", () -> REDIS.getMappedPort(6379));
   }

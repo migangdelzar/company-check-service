@@ -13,6 +13,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 class VerificationRecoveryIT {
   @Test
@@ -20,21 +21,25 @@ class VerificationRecoveryIT {
     var calls = new int[] {0};
     var expiration = mock(ExpirationService.class);
     when(expiration.expire(any(Instant.class), eq(100)))
-        .thenAnswer(invocation -> ++calls[0] < 3 ? 100 : 4);
+        .thenAnswer(invocation -> Mono.just(++calls[0] < 3 ? 100 : 4));
     new VerificationExpirationScheduler(
             expiration,
             Clock.fixed(Instant.EPOCH, ZoneOffset.UTC),
             () ->
-                new ExpirationLock.Lease() {
-                  @Override
-                  public boolean acquired() {
-                    return true;
-                  }
+                Mono.just(
+                    new ExpirationLock.Lease() {
+                      @Override
+                      public boolean acquired() {
+                        return true;
+                      }
 
-                  @Override
-                  public void close() {}
-                })
-        .recoverExpiredVerifications();
+                      @Override
+                      public Mono<Void> release() {
+                        return Mono.empty();
+                      }
+                    }))
+        .reapExpiredVerifications()
+        .block();
     assertEquals(3, calls[0]);
   }
 }

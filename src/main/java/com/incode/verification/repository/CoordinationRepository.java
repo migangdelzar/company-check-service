@@ -2,22 +2,22 @@ package com.incode.verification.repository;
 
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.VerificationResult;
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 public interface CoordinationRepository {
   /**
    * Acquires coordination for a normalized query.
    *
    * @param query normalized query to coordinate
-   * @return a lease that must be closed by the caller
+   * @return a lease that must be released by the caller
    */
-  Lease acquire(NormalizedQuery query);
+  Mono<Lease> acquire(NormalizedQuery query);
 
-  Optional<VerificationResult> get(NormalizedQuery query);
+  Mono<VerificationResult> get(NormalizedQuery query);
 
-  VerificationResult put(NormalizedQuery query, VerificationResult result);
+  Mono<VerificationResult> put(NormalizedQuery query, VerificationResult result);
 
-  interface Lease extends AutoCloseable {
+  interface Lease {
     boolean acquired();
 
     /**
@@ -29,7 +29,6 @@ public interface CoordinationRepository {
       return false;
     }
 
-    @Override
-    void close();
+    Mono<Void> release();
   }
 }

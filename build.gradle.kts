@@ -43,18 +43,20 @@ dependencies {
 
   // Application APIs and adapters
   implementation(libs.spring.boot.starter.jdbc)
+  implementation(libs.spring.boot.starter.data.r2dbc)
+  implementation(libs.r2dbc.pool)
   implementation(libs.spring.boot.starter.data.redis)
   implementation(libs.commons.pool2)
-  implementation(libs.spring.boot.starter.web)
+  implementation(libs.spring.boot.starter.webflux)
   implementation(libs.spring.boot.starter.actuator)
   implementation(libs.spring.boot.starter.opentelemetry)
   implementation(libs.spring.boot.starter.cache)
   implementation(libs.spring.boot.starter.aspectj)
   implementation(libs.spring.boot.starter.validation)
   implementation(libs.micrometer.registry.prometheus)
-  implementation(libs.httpclient5)
   implementation(libs.uuid.creator)
   implementation(libs.resilience4j.spring.boot4)
+  implementation(libs.resilience4j.reactor)
   implementation(libs.caffeine)
   implementation(libs.jackson.databind)
   implementation(libs.jackson.datatype.jsr310)
@@ -64,6 +66,7 @@ dependencies {
   implementation(libs.flyway.database.postgresql)
   implementation(libs.spring.boot.flyway)
   runtimeOnly(libs.postgresql)
+  implementation(libs.r2dbc.postgresql)
 
   // Compile-time annotations and builders
   compileOnly(libs.lombok)
@@ -80,10 +83,10 @@ dependencies {
   // Tests
   testImplementation(libs.junit.jupiter)
   testImplementation(libs.archunit.junit5)
+  testImplementation(libs.reactor.test)
   testRuntimeOnly(libs.junit.platform.launcher)
   testImplementation(libs.spring.boot.starter.test)
-  testImplementation(libs.spring.boot.starter.webmvc.test)
-  testImplementation(libs.spring.boot.starter.data.jdbc.test)
+  testImplementation(libs.spring.boot.starter.webflux.test)
   testImplementation(libs.spring.boot.starter.data.redis.test)
 }
 
