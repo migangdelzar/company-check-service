@@ -6,7 +6,7 @@ import com.incode.verification.repository.coordination.RedisExpirationLock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
 @Configuration(proxyBeanMethods = false)
 public class ExpirationLockConfiguration {
@@ -19,7 +19,7 @@ public class ExpirationLockConfiguration {
   @Bean
   @Profile("distributed")
   ExpirationLock redisExpirationLock(
-      StringRedisTemplate redis, ExpirationLockProperties properties) {
+      ReactiveStringRedisTemplate redis, ExpirationLockProperties properties) {
     return new RedisExpirationLock(redis, properties);
   }
 }

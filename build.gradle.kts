@@ -66,7 +66,7 @@ dependencies {
   implementation(libs.flyway.database.postgresql)
   implementation(libs.spring.boot.flyway)
   runtimeOnly(libs.postgresql)
-  runtimeOnly(libs.r2dbc.postgresql)
+  implementation(libs.r2dbc.postgresql)
 
   // Compile-time annotations and builders
   compileOnly(libs.lombok)

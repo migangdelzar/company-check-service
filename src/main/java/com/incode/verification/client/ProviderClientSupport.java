@@ -5,6 +5,7 @@ import com.incode.verification.exception.ProviderTransientException;
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.ProviderFailure;
 import com.incode.verification.service.model.ProviderResult;
+import reactor.core.publisher.Mono;
 
 abstract class ProviderClientSupport implements ProviderClient {
   protected final ProviderClient delegate;
@@ -13,13 +14,13 @@ abstract class ProviderClientSupport implements ProviderClient {
     this.delegate = delegate;
   }
 
-  public ProviderResult fallback(NormalizedQuery query, Throwable failure) {
+  public Mono<ProviderResult> fallback(NormalizedQuery query, Throwable failure) {
     if (failure instanceof ProviderTransientException transientFailure) {
-      return new ProviderResult.Failure(transientFailure.failure());
+      return Mono.just(new ProviderResult.Failure(transientFailure.failure()));
     }
     if (failure instanceof ProviderContractException) {
-      return new ProviderResult.Failure(new ProviderFailure.Malformed());
+      return Mono.just(new ProviderResult.Failure(new ProviderFailure.Malformed()));
     }
-    return new ProviderResult.Failure(new ProviderFailure.Unavailable());
+    return Mono.just(new ProviderResult.Failure(new ProviderFailure.Unavailable()));
   }
 }

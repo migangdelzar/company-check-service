@@ -7,14 +7,14 @@ import org.springframework.cache.CacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 
 @Configuration(proxyBeanMethods = false)
 @Profile("distributed")
 public class CoordinationConfiguration {
   @Bean
   CoordinationRepository coordination(
-      StringRedisTemplate redis,
+      ReactiveStringRedisTemplate redis,
       CacheManager cacheManager,
       CoordinationProperties properties,
       ObjectMapper mapper) {

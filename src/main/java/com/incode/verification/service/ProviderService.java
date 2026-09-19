@@ -7,6 +7,7 @@ import com.incode.verification.service.model.ProviderResult;
 import io.micrometer.observation.annotation.Observed;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 public class ProviderService {
@@ -21,12 +22,9 @@ public class ProviderService {
   }
 
   @Observed(name = "verification.provider.resolve")
-  public ProviderResult resolve(NormalizedQuery query) {
-    var result = free.lookup(query);
-    if (!requiresFallback(result)) {
-      return result;
-    }
-    return premium.lookup(query);
+  public Mono<ProviderResult> resolve(NormalizedQuery query) {
+    return free.lookup(query)
+        .flatMap(result -> requiresFallback(result) ? premium.lookup(query) : Mono.just(result));
   }
 
   private boolean requiresFallback(ProviderResult result) {

@@ -42,8 +42,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.web.client.RestClient;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+import org.springframework.web.reactive.function.client.WebClient;
 
 class RuntimeProfileConfigurationTest {
   @Test
@@ -146,7 +146,7 @@ class RuntimeProfileConfigurationTest {
   }
 
   @Test
-  void defaultProfileUsesBoundedJdbcConnectionPool() throws IOException {
+  void defaultProfileUsesBoundedR2dbcAndFlywayConnectionPools() throws IOException {
     var source =
         new YamlPropertySourceLoader()
             .load("application", new ClassPathResource("application.yml")).stream()
@@ -159,7 +159,9 @@ class RuntimeProfileConfigurationTest {
     assertEquals(250, source.getProperty("spring.datasource.hikari.validation-timeout"));
     assertEquals(600000, source.getProperty("spring.datasource.hikari.idle-timeout"));
     assertEquals(1500000, source.getProperty("spring.datasource.hikari.max-lifetime"));
-    assertEquals(true, source.getProperty("spring.threads.virtual.enabled"));
+    assertEquals(16, source.getProperty("spring.r2dbc.pool.max-size"));
+    assertEquals(4, source.getProperty("spring.r2dbc.pool.min-idle"));
+    assertEquals("250ms", source.getProperty("spring.r2dbc.pool.max-acquire-time"));
     assertEquals(true, source.getProperty("spring.main.keep-alive"));
     assertEquals(
         "company-check:expiration:lock", source.getProperty("verification.expiration.lock.key"));
@@ -193,13 +195,13 @@ class RuntimeProfileConfigurationTest {
   @Configuration(proxyBeanMethods = false)
   static class ProviderBeans {
     @Bean("freeProviderClient")
-    RestClient freeProviderClient() {
-      return RestClient.create();
+    WebClient freeProviderClient() {
+      return WebClient.create();
     }
 
     @Bean("premiumProviderClient")
-    RestClient premiumProviderClient() {
-      return RestClient.create();
+    WebClient premiumProviderClient() {
+      return WebClient.create();
     }
 
     @Bean
@@ -243,8 +245,8 @@ class RuntimeProfileConfigurationTest {
     }
 
     @Bean
-    StringRedisTemplate redis() {
-      return org.mockito.Mockito.mock(StringRedisTemplate.class);
+    ReactiveStringRedisTemplate redis() {
+      return org.mockito.Mockito.mock(ReactiveStringRedisTemplate.class);
     }
 
     @Bean

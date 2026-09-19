@@ -1,82 +1,66 @@
 package com.incode.verification.config.provider;
 
 import com.incode.verification.config.hints.ProviderRuntimeHints;
-import org.apache.hc.client5.http.config.ConnectionConfig;
-import org.apache.hc.client5.http.config.RequestConfig;
-import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
-import org.apache.hc.client5.http.impl.classic.HttpClients;
-import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
-import org.apache.hc.core5.util.TimeValue;
-import org.apache.hc.core5.util.Timeout;
+import io.netty.channel.ChannelOption;
+import java.time.Duration;
 import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.ImportRuntimeHints;
 import org.springframework.context.annotation.Scope;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestClient;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.resources.ConnectionProvider;
 
 @Configuration(proxyBeanMethods = false)
 @ImportRuntimeHints(ProviderRuntimeHints.class)
 public class ProviderHttpConfiguration {
   @Bean
   @Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-  @ConditionalOnMissingBean(RestClient.Builder.class)
-  RestClient.Builder providerRestClientBuilder() {
-    return RestClient.builder();
+  @ConditionalOnMissingBean(WebClient.Builder.class)
+  WebClient.Builder providerWebClientBuilder() {
+    return WebClient.builder();
   }
 
   @Bean("freeProviderClient")
-  RestClient freeProviderClient(
-      RestClient.Builder builder, ProviderProperties properties, CloseableHttpClient httpClient) {
-    return client(builder, properties.free(), httpClient);
+  WebClient freeProviderClient(
+      WebClient.Builder builder, ProviderProperties properties, ConnectionProvider providerPool) {
+    return client(builder, properties.free(), providerPool, properties.pool());
   }
 
   @Bean("premiumProviderClient")
-  RestClient premiumProviderClient(
-      RestClient.Builder builder, ProviderProperties properties, CloseableHttpClient httpClient) {
-    return client(builder, properties.premium(), httpClient);
+  WebClient premiumProviderClient(
+      WebClient.Builder builder, ProviderProperties properties, ConnectionProvider providerPool) {
+    return client(builder, properties.premium(), providerPool, properties.pool());
   }
 
-  @Bean(destroyMethod = "close")
-  CloseableHttpClient providerHttpClient(ProviderProperties properties) {
+  @Bean(destroyMethod = "dispose")
+  ConnectionProvider providerConnectionProvider(ProviderProperties properties) {
     var pool = properties.pool();
-    var responseTimeout = Timeout.ofMilliseconds(pool.responseTimeout().toMillis());
-    var connectionConfig =
-        ConnectionConfig.custom()
-            .setConnectTimeout(Timeout.ofMilliseconds(pool.connectTimeout().toMillis()))
-            .setSocketTimeout(responseTimeout)
-            .setValidateAfterInactivity(
-                TimeValue.ofMilliseconds(pool.validateAfterInactivity().toMillis()))
-            .build();
-    var manager =
-        PoolingHttpClientConnectionManagerBuilder.create()
-            .setMaxConnTotal(pool.maxConnectionsTotal())
-            .setMaxConnPerRoute(pool.maxConnectionsPerRoute())
-            .setDefaultConnectionConfig(connectionConfig)
-            .build();
-    var requestConfig =
-        RequestConfig.custom()
-            .setConnectionRequestTimeout(
-                Timeout.ofMilliseconds(pool.connectionRequestTimeout().toMillis()))
-            .setResponseTimeout(responseTimeout)
-            .build();
-    return HttpClients.custom()
-        .setConnectionManager(manager)
-        .setDefaultRequestConfig(requestConfig)
-        .evictExpiredConnections()
-        .evictIdleConnections(TimeValue.ofMilliseconds(pool.evictIdleAfter().toMillis()))
+    return ConnectionProvider.builder("company-check-provider")
+        .maxConnections(pool.maxConnectionsTotal())
+        .pendingAcquireTimeout(pool.connectionRequestTimeout())
+        .maxIdleTime(pool.evictIdleAfter())
+        .evictInBackground(Duration.ofSeconds(30))
         .build();
   }
 
-  private RestClient client(
-      RestClient.Builder builder,
+  private WebClient client(
+      WebClient.Builder builder,
       ProviderEndpointProperties endpoint,
-      CloseableHttpClient httpClient) {
+      ConnectionProvider providerConnectionProvider,
+      ProviderProperties.HttpPoolProperties pool) {
+    var httpClient =
+        HttpClient.create(providerConnectionProvider)
+            .option(
+                ChannelOption.CONNECT_TIMEOUT_MILLIS,
+                Math.toIntExact(pool.connectTimeout().toMillis()))
+            .responseTimeout(pool.responseTimeout());
     return builder
         .baseUrl(endpoint.baseUrl())
-        .requestFactory(new HttpComponentsClientHttpRequestFactory(httpClient))
+        .clientConnector(new ReactorClientHttpConnector(httpClient))
         .build();
   }
 }

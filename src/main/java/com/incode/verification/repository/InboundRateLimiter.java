@@ -1,9 +1,10 @@
 package com.incode.verification.repository;
 
 import java.time.Duration;
+import reactor.core.publisher.Mono;
 
 public interface InboundRateLimiter {
-  Decision tryAcquire();
+  Mono<Decision> tryAcquire();
 
   record Decision(Status status, Duration retryAfter) {
     public Decision {

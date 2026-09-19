@@ -9,7 +9,8 @@ import com.incode.verification.service.model.ProviderType;
 import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 public class DistributedFreeProviderClient extends ProviderClientSupport {
   private final ProviderRateLimiter rateLimiter;
@@ -20,7 +21,7 @@ public class DistributedFreeProviderClient extends ProviderClientSupport {
   }
 
   public DistributedFreeProviderClient(
-      RestClient client, ProviderEndpointProperties endpoint, ProviderRateLimiter rateLimiter) {
+      WebClient client, ProviderEndpointProperties endpoint, ProviderRateLimiter rateLimiter) {
     this(new FreeProviderClient(client, endpoint), rateLimiter);
   }
 
@@ -28,10 +29,13 @@ public class DistributedFreeProviderClient extends ProviderClientSupport {
   @Retry(name = "freeProvider", fallbackMethod = "fallback")
   @CircuitBreaker(name = "freeProvider", fallbackMethod = "fallback")
   @Bulkhead(name = "freeProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
-  public ProviderResult lookup(NormalizedQuery query) {
-    if (!rateLimiter.tryAcquire(ProviderType.FREE)) {
-      return fallback(query, new ProviderRateLimitExceededException());
-    }
-    return delegate.lookup(query);
+  public Mono<ProviderResult> lookup(NormalizedQuery query) {
+    return rateLimiter
+        .tryAcquire(ProviderType.FREE)
+        .flatMap(
+            allowed ->
+                allowed
+                    ? delegate.lookup(query)
+                    : fallback(query, new ProviderRateLimitExceededException()));
   }
 }

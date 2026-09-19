@@ -10,14 +10,15 @@ import io.github.resilience4j.bulkhead.annotation.Bulkhead;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
-import org.springframework.web.client.RestClient;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 public class FreeProviderClient extends ProviderClientSupport {
   public FreeProviderClient(ProviderClient delegate) {
     super(delegate);
   }
 
-  public FreeProviderClient(RestClient client, ProviderEndpointProperties endpoint) {
+  public FreeProviderClient(WebClient client, ProviderEndpointProperties endpoint) {
     this(
         new TypedProviderClient<>(
             client,
@@ -32,7 +33,7 @@ public class FreeProviderClient extends ProviderClientSupport {
   @CircuitBreaker(name = "freeProvider", fallbackMethod = "fallback")
   @RateLimiter(name = "freeProvider", fallbackMethod = "fallback")
   @Bulkhead(name = "freeProvider", type = Bulkhead.Type.SEMAPHORE, fallbackMethod = "fallback")
-  public ProviderResult lookup(NormalizedQuery query) {
+  public Mono<ProviderResult> lookup(NormalizedQuery query) {
     return delegate.lookup(query);
   }
 }

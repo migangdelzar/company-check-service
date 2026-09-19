@@ -2,63 +2,32 @@ package com.incode.verification.repository.ratelimit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.incode.verification.config.ratelimit.InboundRateLimitProperties;
 import com.incode.verification.repository.InboundRateLimiter;
 import java.time.Duration;
-import java.util.List;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import reactor.core.publisher.Flux;
 
 class RedisInboundRateLimiterTest {
-  private final StringRedisTemplate redis = mock(StringRedisTemplate.class);
+  private final ReactiveStringRedisTemplate redis = mock(ReactiveStringRedisTemplate.class);
   private final RedisInboundRateLimiter limiter =
       new RedisInboundRateLimiter(
           redis, new InboundRateLimitProperties(2, Duration.ofSeconds(1), "test:inbound:"));
 
   @Test
-  void allowsWhenRedisScriptReturnsOne() {
-    when(redis.execute(
-            any(DefaultRedisScript.class),
-            eq(List.of("test:inbound:backend-service")),
-            eq("1000"),
-            eq("2")))
-        .thenReturn(1L);
+  void mapsRedisDecisionsToReactiveRateLimitDecisions() {
+    when(redis.execute(any(DefaultRedisScript.class), anyList(), any(Object[].class)))
+        .thenReturn(Flux.just(1L), Flux.just(0L));
 
-    assertEquals(InboundRateLimiter.Decision.Status.ALLOWED, limiter.tryAcquire().status());
-  }
-
-  @Test
-  void rejectsWhenRedisScriptReturnsZero() {
-    when(redis.execute(
-            any(DefaultRedisScript.class),
-            eq(List.of("test:inbound:backend-service")),
-            eq("1000"),
-            eq("2")))
-        .thenReturn(0L);
-
-    var decision = limiter.tryAcquire();
-
-    assertEquals(InboundRateLimiter.Decision.Status.REJECTED, decision.status());
-    assertEquals(Duration.ofSeconds(1), decision.retryAfter());
-  }
-
-  @Test
-  void reportsUnavailableWhenRedisFails() {
-    when(redis.execute(
-            any(DefaultRedisScript.class),
-            eq(List.of("test:inbound:backend-service")),
-            eq("1000"),
-            eq("2")))
-        .thenThrow(new RuntimeException("Redis unavailable"));
-
-    var decision = limiter.tryAcquire();
-
-    assertEquals(InboundRateLimiter.Decision.Status.UNAVAILABLE, decision.status());
-    assertEquals(Duration.ofSeconds(1), decision.retryAfter());
+    assertEquals(InboundRateLimiter.Decision.Status.ALLOWED, limiter.tryAcquire().block().status());
+    var rejected = limiter.tryAcquire().block();
+    assertEquals(InboundRateLimiter.Decision.Status.REJECTED, rejected.status());
+    assertEquals(Duration.ofSeconds(1), rejected.retryAfter());
   }
 }

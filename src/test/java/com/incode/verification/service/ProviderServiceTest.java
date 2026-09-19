@@ -1,7 +1,6 @@
 package com.incode.verification.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import com.incode.verification.client.ProviderClient;
 import com.incode.verification.service.model.Company;
@@ -13,6 +12,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 
 class ProviderServiceTest {
   @Test
@@ -20,17 +20,20 @@ class ProviderServiceTest {
     var premiumCalls = new AtomicInteger();
     ProviderClient free =
         query ->
-            new ProviderResult.Success(
-                List.of(
-                    new Company("123", "Acme", LocalDate.parse("2020-01-01"), "1 Main St", true)),
-                ProviderType.FREE);
+            Mono.just(
+                new ProviderResult.Success(
+                    List.of(
+                        new Company(
+                            "123", "Acme", LocalDate.parse("2020-01-01"), "1 Main St", true)),
+                    ProviderType.FREE));
     ProviderClient premium =
         query -> {
           premiumCalls.incrementAndGet();
-          return new ProviderResult.Success(List.of(), ProviderType.PREMIUM);
+          return Mono.just(new ProviderResult.Success(List.of(), ProviderType.PREMIUM));
         };
 
-    var result = new ProviderService(free, premium).resolve(NormalizedQuery.normalize("123"));
+    var result =
+        new ProviderService(free, premium).resolve(NormalizedQuery.normalize("123")).block();
 
     assertEquals(ProviderType.FREE, ((ProviderResult.Success) result).provider());
     assertEquals(0, premiumCalls.get());
@@ -39,32 +42,35 @@ class ProviderServiceTest {
   @Test
   void doesNotFallBackForFreeClientErrors() {
     var premiumCalls = new AtomicInteger();
-    ProviderClient free = query -> new ProviderResult.Failure(new ProviderFailure.ClientError(404));
+    ProviderClient free =
+        query -> Mono.just(new ProviderResult.Failure(new ProviderFailure.ClientError(404)));
     ProviderClient premium =
         query -> {
           premiumCalls.incrementAndGet();
-          return new ProviderResult.Success(List.of(), ProviderType.PREMIUM);
+          return Mono.just(new ProviderResult.Success(List.of(), ProviderType.PREMIUM));
         };
 
-    var result = new ProviderService(free, premium).resolve(NormalizedQuery.normalize("123"));
+    var result =
+        new ProviderService(free, premium).resolve(NormalizedQuery.normalize("123")).block();
 
-    assertFalse(result instanceof ProviderResult.Success);
+    org.junit.jupiter.api.Assertions.assertInstanceOf(
+        ProviderFailure.ClientError.class, ((ProviderResult.Failure) result).failure());
     assertEquals(0, premiumCalls.get());
   }
 
   @Test
   void fallsBackToPremiumWhenFreeReturnsNoCompanies() {
     var premiumCalls = new AtomicInteger();
-    ProviderClient free = query -> new ProviderResult.Success(List.of(), ProviderType.FREE);
+    ProviderClient free =
+        query -> Mono.just(new ProviderResult.Success(List.of(), ProviderType.FREE));
     ProviderClient premium =
         query -> {
           premiumCalls.incrementAndGet();
-          return new ProviderResult.Success(
-              List.of(new Company("123", "Acme", LocalDate.parse("2020-01-01"), "1 Main St", true)),
-              ProviderType.PREMIUM);
+          return Mono.just(new ProviderResult.Success(List.of(), ProviderType.PREMIUM));
         };
 
-    var result = new ProviderService(free, premium).resolve(NormalizedQuery.normalize("123"));
+    var result =
+        new ProviderService(free, premium).resolve(NormalizedQuery.normalize("123")).block();
 
     assertEquals(1, premiumCalls.get());
     assertEquals(ProviderType.PREMIUM, ((ProviderResult.Success) result).provider());

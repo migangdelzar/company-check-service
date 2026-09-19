@@ -7,8 +7,9 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
+import reactor.core.publisher.Mono;
 
 public final class RedisExpirationLock implements ExpirationLock {
   private static final Logger log = LoggerFactory.getLogger(RedisExpirationLock.class);
@@ -17,34 +18,36 @@ public final class RedisExpirationLock implements ExpirationLock {
   private static final DefaultRedisScript<Long> RELEASE_SCRIPT =
       new DefaultRedisScript<>(RELEASE, Long.class);
 
-  private final StringRedisTemplate redis;
+  private final ReactiveStringRedisTemplate redis;
   private final ExpirationLockProperties properties;
 
-  public RedisExpirationLock(StringRedisTemplate redis, ExpirationLockProperties properties) {
+  public RedisExpirationLock(
+      ReactiveStringRedisTemplate redis, ExpirationLockProperties properties) {
     this.redis = redis;
     this.properties = properties;
   }
 
   @Override
-  public Lease tryAcquire() {
+  public Mono<Lease> tryAcquire() {
     String token = UUID.randomUUID().toString();
-    try {
-      Boolean acquired = redis.opsForValue().setIfAbsent(properties.key(), token, properties.ttl());
-      return new RedisLease(redis, properties.key(), token, Boolean.TRUE.equals(acquired));
-    } catch (Exception exception) {
-      log.debug("Redis expiration lock unavailable; skipping expiration", exception);
-      return new RedisLease(redis, properties.key(), token, false);
-    }
+    return Mono.defer(
+            () -> redis.opsForValue().setIfAbsent(properties.key(), token, properties.ttl()))
+        .map(acquired -> (Lease) new RedisLease(redis, properties.key(), token, acquired))
+        .doOnError(
+            exception ->
+                log.debug("Redis expiration lock unavailable; skipping expiration", exception))
+        .onErrorReturn(new RedisLease(redis, properties.key(), token, false));
   }
 
   private static final class RedisLease implements Lease {
-    private final StringRedisTemplate redis;
+    private final ReactiveStringRedisTemplate redis;
     private final String key;
     private final String token;
     private final boolean acquired;
     private final AtomicBoolean closed = new AtomicBoolean();
 
-    private RedisLease(StringRedisTemplate redis, String key, String token, boolean acquired) {
+    private RedisLease(
+        ReactiveStringRedisTemplate redis, String key, String token, boolean acquired) {
       this.redis = redis;
       this.key = key;
       this.token = token;
@@ -57,15 +60,16 @@ public final class RedisExpirationLock implements ExpirationLock {
     }
 
     @Override
-    public void close() {
+    public Mono<Void> release() {
       if (!acquired || !closed.compareAndSet(false, true)) {
-        return;
+        return Mono.empty();
       }
-      try {
-        redis.execute(RELEASE_SCRIPT, List.of(key), token);
-      } catch (Exception exception) {
-        log.debug("Redis expiration lock release unavailable", exception);
-      }
+      return redis
+          .execute(RELEASE_SCRIPT, List.of(key), token)
+          .next()
+          .then()
+          .doOnError(exception -> log.debug("Redis expiration lock release unavailable", exception))
+          .onErrorResume(exception -> Mono.empty());
     }
   }
 }

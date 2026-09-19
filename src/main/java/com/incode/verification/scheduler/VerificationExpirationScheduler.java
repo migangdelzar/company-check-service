@@ -9,6 +9,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Mono;
 
 @Component
 @EnableScheduling
@@ -27,23 +28,24 @@ public final class VerificationExpirationScheduler {
 
   @EventListener(ApplicationReadyEvent.class)
   public void recoverExpiredVerifications() {
-    expireUntilDrained();
+    expireUntilDrained().subscribe();
   }
 
   @Scheduled(fixedDelayString = "${verification.expiration.reaper-delay:1000ms}")
-  public void reapExpiredVerifications() {
-    expireUntilDrained();
+  public Mono<Void> reapExpiredVerifications() {
+    return expireUntilDrained();
   }
 
-  private void expireUntilDrained() {
-    int expired;
-    do {
-      try (var lease = expirationLock.tryAcquire()) {
-        if (!lease.acquired()) {
-          return;
-        }
-        expired = expiration.expire(Instant.now(clock), BATCH_SIZE);
-      }
-    } while (expired == BATCH_SIZE);
+  private Mono<Void> expireUntilDrained() {
+    return Mono.usingWhen(
+        expirationLock.tryAcquire(),
+        lease -> lease.acquired() ? expireBatch() : Mono.empty(),
+        ExpirationLock.Lease::release);
+  }
+
+  private Mono<Void> expireBatch() {
+    return expiration
+        .expire(Instant.now(clock), BATCH_SIZE)
+        .flatMap(expired -> expired == BATCH_SIZE ? expireBatch() : Mono.empty());
   }
 }

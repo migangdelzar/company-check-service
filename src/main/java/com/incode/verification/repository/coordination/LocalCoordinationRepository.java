@@ -3,7 +3,6 @@ package com.incode.verification.repository.coordination;
 import com.incode.verification.repository.CoordinationRepository;
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.VerificationResult;
-import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -11,6 +10,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.jspecify.annotations.Nullable;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import reactor.core.publisher.Mono;
 
 public final class LocalCoordinationRepository implements CoordinationRepository {
   private static final String CACHE_NAME = "verification";
@@ -23,32 +23,32 @@ public final class LocalCoordinationRepository implements CoordinationRepository
   }
 
   @Override
-  public Optional<VerificationResult> get(NormalizedQuery query) {
+  public Mono<VerificationResult> get(NormalizedQuery query) {
     var cache = cache();
     if (cache == null) {
-      return Optional.empty();
+      return Mono.empty();
     }
-    return Optional.ofNullable(cache.get(query.value(), VerificationResult.class));
+    return Mono.justOrEmpty(cache.get(query.value(), VerificationResult.class));
   }
 
   @Override
-  public VerificationResult put(NormalizedQuery query, VerificationResult result) {
+  public Mono<VerificationResult> put(NormalizedQuery query, VerificationResult result) {
     var cache = cache();
     if (cache != null) {
       cache.put(query.value(), result);
     }
-    return result;
+    return Mono.just(result);
   }
 
   @Override
-  public Lease acquire(NormalizedQuery query) {
+  public Mono<Lease> acquire(NormalizedQuery query) {
     var key = query.value();
     var state = register(key);
     if (!state.lock.tryLock()) {
       release(key, state);
-      return new LocalLease(key, state, false, false);
+      return Mono.just(new LocalLease(key, state, false, false));
     }
-    return new LocalLease(key, state, true, true);
+    return Mono.just(new LocalLease(key, state, true, true));
   }
 
   private LeaseState register(String key) {
@@ -116,11 +116,11 @@ public final class LocalCoordinationRepository implements CoordinationRepository
     }
 
     @Override
-    public void close() {
+    public Mono<Void> release() {
       if (!registered || !closed.compareAndSet(false, true)) {
-        return;
+        return Mono.empty();
       }
-      releaseLease(key, state);
+      return Mono.fromRunnable(() -> releaseLease(key, state));
     }
   }
 }

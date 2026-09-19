@@ -1,76 +1,67 @@
 package com.incode.verification.service;
 
+import com.incode.verification.config.persistence.DatabaseRetryProperties;
 import com.incode.verification.exception.domain.VerificationNotFoundException;
 import com.incode.verification.repository.CoordinationRepository;
 import com.incode.verification.repository.VerificationRepository;
 import com.incode.verification.service.model.NormalizedQuery;
 import com.incode.verification.service.model.Verification;
 import com.incode.verification.service.model.VerificationResult;
-import java.util.UUID;
-import org.springframework.core.retry.RetryTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.reactive.TransactionalOperator;
+import reactor.core.publisher.Mono;
+import reactor.util.retry.Retry;
 
 @Service
 public class VerificationStoreService {
   private final VerificationRepository repository;
   private final CoordinationRepository coordination;
-  private final RetryTemplate databaseRetries;
-  private final TransactionTemplate transaction;
+  private final TransactionalOperator transaction;
+  private final Retry databaseRetries;
 
   public VerificationStoreService(
       VerificationRepository repository,
       CoordinationRepository coordination,
-      RetryTemplate databaseRetries,
-      TransactionTemplate transaction) {
+      TransactionalOperator transaction,
+      DatabaseRetryProperties retryProperties) {
     this.repository = repository;
     this.coordination = coordination;
-    this.databaseRetries = databaseRetries;
+    this.databaseRetries =
+        Retry.backoff(retryProperties.maxAttempts() - 1L, retryProperties.delay())
+            .maxBackoff(retryProperties.maxDelay())
+            .jitter(0d);
     this.transaction = transaction;
   }
 
-  public VerificationResult store(Verification verification, NormalizedQuery query) {
-    return databaseRetries.invoke(
-        () -> transaction.execute(status -> storeWithinTransaction(verification, query)));
+  public Mono<VerificationResult> store(Verification verification, NormalizedQuery query) {
+    return transaction
+        .transactional(storeWithinTransaction(verification))
+        .retryWhen(databaseRetries)
+        .flatMap(
+            result ->
+                result.status().isTerminal() ? coordination.put(query, result) : Mono.just(result));
   }
 
-  private VerificationResult storeWithinTransaction(
-      Verification verification, NormalizedQuery query) {
-    var claimToken = repository.claim(verification.id());
-    if (claimToken != null && repository.complete(verification.id(), claimToken, verification)) {
-      var result = VerificationResult.from(verification);
-      publishAfterCommit(query, result);
-      return result;
-    }
-    return reload(verification.id(), query);
+  private Mono<VerificationResult> storeWithinTransaction(Verification verification) {
+    return repository
+        .claim(verification.id())
+        .flatMap(
+            claimToken ->
+                repository
+                    .complete(verification.id(), claimToken, verification)
+                    .flatMap(
+                        completed ->
+                            completed
+                                ? Mono.just(VerificationResult.from(verification))
+                                : reload(verification.id())))
+        .switchIfEmpty(Mono.defer(() -> reload(verification.id())));
   }
 
-  private VerificationResult reload(UUID id, NormalizedQuery query) {
-    var current =
-        repository
-            .findById(id)
-            .orElseThrow(() -> new VerificationNotFoundException("verification not found: " + id));
-    var result = VerificationResult.from(current);
-    publishAfterCommit(query, result);
-    return result;
-  }
-
-  private void publishAfterCommit(NormalizedQuery query, VerificationResult result) {
-    if (!result.status().isTerminal()) {
-      return;
-    }
-    if (!TransactionSynchronizationManager.isSynchronizationActive()) {
-      coordination.put(query, result);
-      return;
-    }
-    TransactionSynchronizationManager.registerSynchronization(
-        new TransactionSynchronization() {
-          @Override
-          public void afterCommit() {
-            coordination.put(query, result);
-          }
-        });
+  private Mono<VerificationResult> reload(java.util.UUID id) {
+    return repository
+        .findById(id)
+        .map(VerificationResult::from)
+        .switchIfEmpty(
+            Mono.error(() -> new VerificationNotFoundException("verification not found: " + id)));
   }
 }

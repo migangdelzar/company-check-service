@@ -1,12 +1,13 @@
 package com.incode.verification.repository;
 
-public interface ExpirationLock {
-  Lease tryAcquire();
+import reactor.core.publisher.Mono;
 
-  interface Lease extends AutoCloseable {
+public interface ExpirationLock {
+  Mono<Lease> tryAcquire();
+
+  interface Lease {
     boolean acquired();
 
-    @Override
-    void close();
+    Mono<Void> release();
   }
 }

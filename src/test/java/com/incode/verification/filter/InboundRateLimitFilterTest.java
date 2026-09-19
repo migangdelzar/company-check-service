@@ -1,6 +1,5 @@
 package com.incode.verification.filter;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -8,74 +7,80 @@ import com.incode.verification.repository.InboundRateLimiter;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockFilterChain;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
+import reactor.core.publisher.Mono;
 
 class InboundRateLimitFilterTest {
   @Test
-  void allowsBackendServiceRequestWhenLimiterAllows() throws Exception {
-    var limiter = new FakeInboundRateLimiter(allowed());
-    var filter = new InboundRateLimitFilter(limiter);
-    var request = request("GET", "/backend-service");
-    var response = new MockHttpServletResponse();
-    var chain = new TrackingFilterChain();
+  void allowsBackendServiceRequestWhenLimiterAllows() {
+    var invoked = new AtomicBoolean();
+    var filter = new InboundRateLimitFilter(new FakeInboundRateLimiter(allowed()));
+    var exchange = exchange("GET", "/backend-service");
 
-    filter.doFilter(request, response, chain);
+    filter
+        .filter(
+            exchange,
+            ignored -> {
+              invoked.set(true);
+              return Mono.empty();
+            })
+        .block();
 
-    assertTrue(chain.invoked.get());
-    assertEquals(200, response.getStatus());
+    assertTrue(invoked.get());
   }
 
   @Test
-  void rejectsBackendServiceRequestWhenLimiterRejects() throws Exception {
+  void rejectsBackendServiceRequestWhenLimiterRejects() {
+    var filter =
+        new InboundRateLimitFilter(new FakeInboundRateLimiter(rejected(Duration.ofSeconds(2))));
+    var exchange = exchange("GET", "/backend-service");
+
+    filter.filter(exchange, ignored -> Mono.error(new AssertionError("chain invoked"))).block();
+
+    assertFalse(
+        exchange.getResponse().isCommitted() && exchange.getResponse().getStatusCode() == null);
+    assertTrue(exchange.getResponse().getStatusCode() == HttpStatus.TOO_MANY_REQUESTS);
+    assertTrue("2".equals(exchange.getResponse().getHeaders().getFirst("Retry-After")));
+  }
+
+  @Test
+  void returnsServiceUnavailableWhenLimiterIsUnavailable() {
+    var filter =
+        new InboundRateLimitFilter(new FakeInboundRateLimiter(unavailable(Duration.ofSeconds(1))));
+    var exchange = exchange("GET", "/backend-service");
+
+    filter.filter(exchange, ignored -> Mono.error(new AssertionError("chain invoked"))).block();
+
+    assertTrue(exchange.getResponse().getStatusCode() == HttpStatus.SERVICE_UNAVAILABLE);
+    assertTrue("1".equals(exchange.getResponse().getHeaders().getFirst("Retry-After")));
+  }
+
+  @Test
+  void skipsNonBackendServiceRequests() {
     var limiter = new FakeInboundRateLimiter(rejected(Duration.ofSeconds(2)));
     var filter = new InboundRateLimitFilter(limiter);
-    var request = request("GET", "/backend-service");
-    var response = new MockHttpServletResponse();
-    var chain = new TrackingFilterChain();
+    var invoked = new AtomicBoolean();
+    var exchange = exchange("GET", "/verifications/123");
 
-    filter.doFilter(request, response, chain);
+    filter
+        .filter(
+            exchange,
+            ignored -> {
+              invoked.set(true);
+              return Mono.empty();
+            })
+        .block();
 
-    assertFalse(chain.invoked.get());
-    assertEquals(429, response.getStatus());
-    assertEquals("2", response.getHeader("Retry-After"));
-  }
-
-  @Test
-  void returnsServiceUnavailableWhenLimiterIsUnavailable() throws Exception {
-    var limiter = new FakeInboundRateLimiter(unavailable(Duration.ofSeconds(1)));
-    var filter = new InboundRateLimitFilter(limiter);
-    var request = request("GET", "/backend-service");
-    var response = new MockHttpServletResponse();
-    var chain = new TrackingFilterChain();
-
-    filter.doFilter(request, response, chain);
-
-    assertFalse(chain.invoked.get());
-    assertEquals(503, response.getStatus());
-    assertEquals("1", response.getHeader("Retry-After"));
-  }
-
-  @Test
-  void skipsNonBackendServiceRequests() throws Exception {
-    var limiter = new FakeInboundRateLimiter(rejected(Duration.ofSeconds(2)));
-    var filter = new InboundRateLimitFilter(limiter);
-    var request = request("GET", "/verifications/123");
-    var response = new MockHttpServletResponse();
-    var chain = new TrackingFilterChain();
-
-    filter.doFilter(request, response, chain);
-
-    assertTrue(chain.invoked.get());
-    assertEquals(200, response.getStatus());
+    assertTrue(invoked.get());
     assertFalse(limiter.called);
   }
 
-  private static MockHttpServletRequest request(String method, String path) {
-    var request = new MockHttpServletRequest(method, path);
-    request.setRequestURI(path);
-    return request;
+  private static MockServerWebExchange exchange(String method, String path) {
+    return MockServerWebExchange.from(
+        MockServerHttpRequest.method(HttpMethod.valueOf(method), path).build());
   }
 
   private static InboundRateLimiter.Decision allowed() {
@@ -101,19 +106,9 @@ class InboundRateLimitFilterTest {
     }
 
     @Override
-    public Decision tryAcquire() {
+    public Mono<Decision> tryAcquire() {
       called = true;
-      return decision;
-    }
-  }
-
-  private static final class TrackingFilterChain extends MockFilterChain {
-    private final AtomicBoolean invoked = new AtomicBoolean();
-
-    @Override
-    public void doFilter(
-        jakarta.servlet.ServletRequest request, jakarta.servlet.ServletResponse response) {
-      invoked.set(true);
+      return Mono.just(decision);
     }
   }
 }

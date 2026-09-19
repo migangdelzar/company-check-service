@@ -21,6 +21,7 @@ import java.util.Objects;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 @Service
 public class VerificationService {
@@ -50,96 +51,120 @@ public class VerificationService {
   }
 
   @Observed(name = "verification.start")
-  public VerificationResult start(StartVerificationCommand command) {
+  public Mono<VerificationResult> start(StartVerificationCommand command) {
     var normalized = NormalizedQuery.normalize(command.query());
-    var existing = verificationRepository.findById(command.verificationId());
-    if (existing.isPresent()) {
-      return existing(existing.orElseThrow(), normalized);
-    }
-
-    var now = Instant.now(clock);
-    var verification =
-        Verification.start(
-            command.verificationId(), command.query(), normalized, now, now.plus(lifetime));
-    if (!verificationRepository.insertInProgress(verification)) {
-      return verificationRepository
-          .findById(command.verificationId())
-          .map(stored -> existing(stored, normalized))
-          .orElseThrow();
-    }
-
-    return resolve(verification, normalized);
+    return verificationRepository
+        .findById(command.verificationId())
+        .flatMap(stored -> existing(stored, normalized))
+        .switchIfEmpty(
+            Mono.defer(
+                () -> {
+                  var now = Instant.now(clock);
+                  var verification =
+                      Verification.start(
+                          command.verificationId(),
+                          command.query(),
+                          normalized,
+                          now,
+                          now.plus(lifetime));
+                  return verificationRepository
+                      .insertInProgress(verification)
+                      .flatMap(
+                          inserted ->
+                              inserted
+                                  ? resolve(verification, normalized)
+                                  : verificationRepository
+                                      .findById(command.verificationId())
+                                      .flatMap(stored -> existing(stored, normalized))
+                                      .switchIfEmpty(
+                                          Mono.error(
+                                              () ->
+                                                  new IllegalStateException(
+                                                      "verification insert lost race without a stored row"))));
+                }));
   }
 
   @Observed(name = "verification.get")
-  public VerificationResult get(UUID verificationId) {
+  public Mono<VerificationResult> get(UUID verificationId) {
     return verificationRepository
         .findById(verificationId)
-        .map(this::resolveForRead)
-        .orElseThrow(
-            () -> new VerificationNotFoundException("verification not found: " + verificationId));
+        .flatMap(this::resolveForRead)
+        .switchIfEmpty(
+            Mono.error(
+                () ->
+                    new VerificationNotFoundException(
+                        "verification not found: " + verificationId)));
   }
 
-  private VerificationResult resolveForRead(Verification verification) {
+  private Mono<VerificationResult> resolveForRead(Verification verification) {
     if (!(verification.state() instanceof VerificationState.InProgress)) {
-      return VerificationResult.from(verification);
+      return Mono.just(VerificationResult.from(verification));
     }
     return verificationRecovery
         .recover(verification)
-        .orElseGet(() -> VerificationResult.from(verification));
+        .defaultIfEmpty(VerificationResult.from(verification));
   }
 
-  private VerificationResult resolve(Verification verification, NormalizedQuery query) {
-    try (var lease = coordination.acquire(query)) {
-      if (lease.degraded()) {
-        throw new CoordinationUnavailableException("verification coordination is unavailable");
-      }
-      if (!lease.acquired()) {
-        return sharedOrInProgress(verification);
-      }
-
-      var shared = verificationRepository.findByQuery(verification.query());
-      if (shared.isPresent()) {
-        return store.store(
-            VerificationReconciliationMapper.fromShared(verification, shared.orElseThrow()), query);
-      }
-
-      var completed = verification.apply(providerService.resolve(verification.query()));
-      return storeOrThrow(completed, query);
-    }
+  private Mono<VerificationResult> resolve(Verification verification, NormalizedQuery query) {
+    return Mono.usingWhen(
+        coordination.acquire(query),
+        lease -> {
+          if (lease.degraded()) {
+            return Mono.error(
+                new CoordinationUnavailableException("verification coordination is unavailable"));
+          }
+          if (!lease.acquired()) {
+            return sharedOrInProgress(verification);
+          }
+          return verificationRepository
+              .findByQuery(verification.query())
+              .flatMap(
+                  shared ->
+                      store.store(
+                          VerificationReconciliationMapper.fromShared(verification, shared), query))
+              .switchIfEmpty(
+                  providerService
+                      .resolve(verification.query())
+                      .map(verification::apply)
+                      .flatMap(completed -> storeOrThrow(completed, query)));
+        },
+        CoordinationRepository.Lease::release);
   }
 
-  private VerificationResult sharedOrInProgress(Verification verification) {
-    var cached = verificationRecovery.cached(verification);
-    if (cached.isPresent()) {
-      return storeOrThrow(cached.orElseThrow());
-    }
+  private Mono<VerificationResult> sharedOrInProgress(Verification verification) {
     return verificationRecovery
-        .shared(verification)
-        .orElseGet(() -> VerificationResult.from(verification));
+        .cached(verification)
+        .switchIfEmpty(verificationRecovery.shared(verification))
+        .defaultIfEmpty(VerificationResult.from(verification));
   }
 
-  private VerificationResult storeOrThrow(Verification verification, NormalizedQuery query) {
+  private Mono<VerificationResult> storeOrThrow(Verification verification, NormalizedQuery query) {
     return storeOrThrow(store.store(verification, query));
   }
 
-  private VerificationResult storeOrThrow(VerificationResult result) {
-    if (result.status() == VerificationStatus.FAILED) {
-      throw new ProviderSubmissionException(
-          Objects.requireNonNull(result.failure()), "provider resolution failed");
-    }
-    return result;
+  private Mono<VerificationResult> storeOrThrow(Mono<VerificationResult> result) {
+    return result.flatMap(
+        value -> {
+          if (value.status() == VerificationStatus.FAILED) {
+            return Mono.error(
+                new ProviderSubmissionException(
+                    Objects.requireNonNull(value.failure()), "provider resolution failed"));
+          }
+          return Mono.just(value);
+        });
   }
 
-  private VerificationResult existing(Verification stored, NormalizedQuery normalized) {
+  private Mono<VerificationResult> existing(Verification stored, NormalizedQuery normalized) {
     if (!stored.query().equals(normalized)) {
-      throw new VerificationConflictException(
-          "VERIFICATION_ID_REUSE", "verificationId is already associated with another query");
+      return Mono.error(
+          new VerificationConflictException(
+              "VERIFICATION_ID_REUSE", "verificationId is already associated with another query"));
     }
     if (stored.state() instanceof VerificationState.InProgress) {
-      throw new VerificationConflictException(
-          "VERIFICATION_IN_PROGRESS", "verification is already in progress");
+      return Mono.error(
+          new VerificationConflictException(
+              "VERIFICATION_IN_PROGRESS", "verification is already in progress"));
     }
-    return VerificationResult.from(stored);
+    return Mono.just(VerificationResult.from(stored));
   }
 }

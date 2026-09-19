@@ -10,6 +10,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @RestController
 @Validated
@@ -21,10 +22,10 @@ public class VerificationController {
   }
 
   @GetMapping("/verifications/{verificationId}")
-  public ResponseEntity<VerificationResponse> get(@PathVariable UUID verificationId) {
-    var view = verification.get(verificationId);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .body(VerificationMapper.map(view));
+  public Mono<ResponseEntity<VerificationResponse>> get(@PathVariable UUID verificationId) {
+    return verification
+        .get(verificationId)
+        .map(VerificationMapper::map)
+        .map(body -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(body));
   }
 }
